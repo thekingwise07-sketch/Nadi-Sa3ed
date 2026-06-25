@@ -1250,6 +1250,8 @@ const firebaseConfig = {
 
 let db = null;
 let firebaseSaveTimeout = null;
+let pendingLocalWrite = false; // true بين لحظة التعديل ولحظة اكتمال الرفع لـ Firebase
+let suppressNextIncoming = false; // لتفادي ارتداد الصدى: تجاهل أول تحديث وارد بعد رفعنا نحن له
 
 function initFirebase() {
   return new Promise(resolve => {
@@ -1279,12 +1281,15 @@ function save() {
   if (isPublicView) return;
   localStorage.setItem('nadyState', JSON.stringify(state));
   if (!db) return;
+  pendingLocalWrite = true;
   clearTimeout(firebaseSaveTimeout);
   firebaseSaveTimeout = setTimeout(() => {
     // الصور الآن روابط URL من ImgBB (صغيرة الحجم) — نرفعها كاملة لـ Firebase
     const toSave = JSON.parse(JSON.stringify(state));
+    suppressNextIncoming = true;
     db.ref('nadyState').set(toSave)
-      .catch(e => console.warn('Firebase save error:', e));
+      .then(() => { pendingLocalWrite = false; })
+      .catch(e => { pendingLocalWrite = false; console.warn('Firebase save error:', e); });
   }, 1500);
 }
 
@@ -1325,9 +1330,12 @@ function decodeSnapshot(encoded) {
 const ADMIN_CODE_B64 = 'Nzc3NDU=';
 function getAdminCode() { return atob(ADMIN_CODE_B64); }
 
+// الرابط الثابت الدائم للموقع — مثبّت بالكود حتى الأزرار تعطي نفس الرابط دايماً
+// بغض النظر من وين فُتح التطبيق (حتى لو فُتح من نسخة محلية أو رابط مختلف مؤقتاً)
+const SITE_BASE_URL = 'https://thekingwise07-sketch.github.io/Nadi-Sa3ed/';
+
 function copyAdminLink() {
-  const baseUrl = location.origin + location.pathname;
-  const link = `${baseUrl}#admin=${getAdminCode()}`;
+  const link = `${SITE_BASE_URL}#admin=${getAdminCode()}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link)
       .then(() => toast('✅ تم نسخ رابط المشرفين'))
@@ -1337,8 +1345,7 @@ function copyAdminLink() {
   }
 }
 function copyShareLink() {
-  const baseUrl = location.origin + location.pathname;
-  const link = `${baseUrl}#live`;
+  const link = `${SITE_BASE_URL}#live`;
 
   const box = document.getElementById('share-box');
   const input = document.getElementById('share-link-text');
@@ -2627,12 +2634,25 @@ async function startApp() {
     if (matchDateEl) matchDateEl.value = new Date().toISOString().slice(0,10);
     render();
 
-    // إذا نجح Firebase ولا توجد بيانات عليه بعد، نرفع البيانات المحلية
     if (fbOk && db) {
       db.ref('nadyState').once('value').then(snap => {
         if (!snap.val() && state.students.length) {
-          save(); // رفع البيانات المحلية الموجودة لأول مرة
+          save(); // رفع البيانات المحلية الموجودة لأول مرة فقط (لا يوجد شيء على الخادم بعد)
         }
+      });
+
+      // الاستماع الحي: أي تعديل يصير من مشرف آخر (أو من جهاز آخر لنفس المشرف)
+      // ينعكس هون تلقائياً، تماماً كما ينعكس برابط الأهالي
+      db.ref('nadyState').on('value', snapshot => {
+        if (suppressNextIncoming) { suppressNextIncoming = false; return; } // صدى رفعنا نحن — نتجاهله
+        if (pendingLocalWrite) return; // عندي تعديل لم يُرفع بعد — لا أريد له أن يُمحى
+        const active = document.activeElement;
+        const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.value;
+        if (isTyping) return; // أكتب بحقل حالياً — لا نريد قطع إدخالي بإعادة رسم مفاجئة
+        const data = snapshot.val();
+        if (!data) return;
+        applyPublicSnapshotToState(data); // نفس دالة التطبيق المستخدمة برابط الأهالي
+        render();
       });
     }
   }
