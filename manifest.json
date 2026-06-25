@@ -1,0 +1,26 @@
+{
+  "name": "نظام النقاط – النادي الصيفي",
+  "short_name": "نقاط النادي",
+  "description": "نظام نقاط وحوافز للنادي الصيفي – مسجد سعيد أرحيل",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdf8ef",
+  "theme_color": "#1a4a2e",
+  "orientation": "portrait",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

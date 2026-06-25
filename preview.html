@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام النقاط – النادي الصيفي</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="نقاط النادي">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+
+  :root {
+    --green-deep: #1a4a2e;
+    --green-mid:  #2d7a4f;
+    --green-light:#4caf7d;
+    --gold:       #d4a017;
+    --gold-light: #f0c84a;
+    --cream:      #fdf8ef;
+    --white:      #ffffff;
+    --gray-soft:  #f0ede6;
+    --gray-text:  #555;
+    --shadow:     0 4px 20px rgba(26,74,46,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--cream);
+    color: var(--green-deep);
+    min-height: 100vh;
+  }
+
+  /* === HEADER === */
+  header {
+    background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%);
+    color: white;
+    padding: 20px 24px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+  }
+  header h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px; }
+  header p  { font-size: 0.82rem; opacity: 0.8; margin-top: 2px; }
+  .header-icon { font-size: 2.2rem; }
+  .header-btns { display: flex; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .btn-header {
+    padding: 5px 10px; border-radius: 8px; font-family: 'Tajawal', sans-serif;
+    font-size: 0.72rem; font-weight: 700; cursor: pointer; border: none;
+    display: flex; align-items: center; gap: 4px; white-space: nowrap;
+  }
+  .btn-export { background: var(--gold); color: white; }
+  .btn-import { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
+
+  /* === TABS === */
+  .tabs {
+    display: flex;
+    background: var(--green-deep);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1 0 auto; min-width: 78px; padding: 12px 10px; text-align: center;
+    color: rgba(255,255,255,0.6); font-size: 0.8rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; border: none; background: none;
+  }
+  .tab.active {
+    color: var(--gold-light);
+    border-bottom: 3px solid var(--gold-light);
+  }
+  .tab:hover:not(.active) { color: rgba(255,255,255,0.9); }
+
+  /* === CONTENT === */
+  .content { padding: 16px; max-width: 700px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* === CARDS === */
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 1rem; font-weight: 800; color: var(--green-deep);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+
+  /* === FORM ELEMENTS === */
+  input, select {
+    width: 100%; padding: 10px 14px;
+    border: 2px solid #e0ddd6; border-radius: 10px;
+    font-family: 'Tajawal', sans-serif; font-size: 0.9rem;
+    background: var(--gray-soft); color: var(--green-deep);
+    margin-bottom: 10px; transition: border 0.2s;
+  }
+  input:focus, select:focus {
+    outline: none; border-color: var(--green-mid);
+    background: white;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; border-radius: 10px; font-family: 'Tajawal', sans-serif;
+    font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none;
+    transition: all 0.2s; width: 100%;
+  }
+  .btn-primary { background: var(--green-mid); color: white; }
+  .btn-primary:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .btn-gold { background: var(--gold); color: white; }
+  .btn-gold:hover { background: #b88a12; transform: translateY(-1px); }
+  .btn-sm { padding: 6px 14px; font-size: 0.8rem; width: auto; border-radius: 8px; }
+  .btn-danger { background: #e53935; color: white; }
+
+  .row { display: flex; gap: 8px; }
+  .row input, .row select { margin-bottom: 0; }
+
+  /* === POINT CATEGORIES === */
+  .cat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 12px;
+  }
+  .cat-btn {
+    padding: 10px; border-radius: 10px; border: 2px solid transparent;
+    background: var(--gray-soft); cursor: pointer; text-align: center;
+    font-family: 'Tajawal', sans-serif; font-size: 0.82rem; font-weight: 700;
+    transition: all 0.2s; color: var(--green-deep);
+  }
+  .cat-btn.selected {
+    border-color: var(--green-mid); background: #e8f5ee; color: var(--green-mid);
+  }
+  .cat-btn .cat-icon { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+
+  /* === STUDENT LIST === */
+  .student-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-radius: 12px;
+    background: var(--gray-soft); margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .student-item:hover { background: #e8f5ee; }
+  .student-info { display: flex; align-items: center; gap: 10px; }
+  .student-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-light));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 0.9rem;
+    overflow: hidden; flex-shrink: 0; position: relative;
+  }
+  .student-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .student-avatar-upload {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .avatar-edit-badge {
+    position: absolute; bottom: -2px; left: -2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold); display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; border: 2px solid white; pointer-events: none;
+  }
+  .student-name { font-weight: 700; font-size: 0.9rem; }
+  .student-team { font-size: 0.75rem; color: var(--gray-text); }
+  .student-pts {
+    font-size: 1.2rem; font-weight: 900; color: var(--green-mid);
+    text-align: left; min-width: 50px;
+  }
+  .pts-label { font-size: 0.65rem; color: var(--gray-text); font-weight: 500; }
+
+  /* === LEADERBOARD === */
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 12px;
+    background: var(--gray-soft); margin-bottom: 8px;
+  }
+  .rank-item:nth-child(1) { background: linear-gradient(135deg, #fff8e1, #fff3c4); }
+  .rank-item:nth-child(2) { background: linear-gradient(135deg, #f5f5f5, #eeeeee); }
+  .rank-item:nth-child(3) { background: linear-gradient(135deg, #fbe9e7, #ffccbc); }
+  .rank-badge {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .rank-1 .rank-badge { background: var(--gold); color: white; }
+  .rank-2 .rank-badge { background: #9e9e9e; color: white; }
+  .rank-3 .rank-badge { background: #bf6030; color: white; }
+  .rank-other .rank-badge { background: #c8e6c9; color: var(--green-deep); }
+  .rank-name { flex: 1; font-weight: 700; font-size: 0.9rem; }
+  .rank-pts { font-weight: 900; font-size: 1.1rem; color: var(--green-mid); }
+
+  /* === TEAM SECTION === */
+  .team-card {
+    border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    border-right: 5px solid var(--green-mid);
+  }
+  .team-name { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+  .team-pts  { font-size: 1.8rem; font-weight: 900; color: var(--green-mid); }
+  .team-count { font-size: 0.78rem; color: var(--gray-text); }
+  .team-leaders { font-size: 0.78rem; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .team-leaders span.lbl { color: var(--gray-text); }
+  .team-leaders b { color: var(--green-deep); }
+  .leader-edit-row {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .leader-edit-row select { margin-bottom: 0; font-size: 0.78rem; padding: 8px; }
+
+  /* === SHARE LINK BOX === */
+  .share-box {
+    background: var(--gray-soft); border-radius: 12px; padding: 12px;
+    display: flex; gap: 8px; align-items: center; margin-top: 10px;
+  }
+  .share-box input {
+    margin-bottom: 0; font-size: 0.75rem; background: white;
+  }
+
+  /* === PUBLIC VIEW BANNER === */
+  .public-banner {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--green-deep); border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 14px; font-weight: 700; font-size: 0.85rem;
+    box-shadow: var(--shadow); line-height: 1.6;
+  }
+  .public-banner .small { font-size: 0.72rem; font-weight: 500; opacity: 0.85; margin-top: 2px; }
+
+  /* === HISTORY LOG === */
+  .log-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid #eee;
+    font-size: 0.82rem;
+  }
+  .log-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .log-time { font-size: 0.72rem; color: var(--gray-text); margin-top: 2px; }
+
+  /* === EMPTY STATE === */
+  .empty {
+    text-align: center; padding: 36px 20px; color: var(--gray-text);
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 10px; }
+  .empty p { font-size: 0.9rem; line-height: 1.6; }
+
+  /* === TOAST === */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--green-deep); color: white;
+    padding: 12px 24px; border-radius: 30px; font-weight: 700; font-size: 0.9rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;
+    z-index: 999; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; color: var(--gray-text);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 6px; margin-top: 4px;
+  }
+
+  .divider { height: 1px; background: #eee; margin: 14px 0; }
+
+  .team-color-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: 6px;
+  }
+
+  .stat-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
+  }
+  .stat-box {
+    background: var(--gray-soft); border-radius: 12px;
+    padding: 12px; text-align: center;
+  }
+  .stat-num { font-size: 1.5rem; font-weight: 900; color: var(--green-mid); }
+  .stat-lbl { font-size: 0.72rem; color: var(--gray-text); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌿 نظام النقاط</h1>
+    <p>النادي الصيفي – مسجد سعيد أرحيل</p>
+  </div>
+  <div class="header-btns">
+    <button class="btn-header btn-export" onclick="exportData()">📤 حفظ نسخة</button>
+    <label class="btn-header btn-import" style="cursor:pointer">
+      📥 تحميل نسخة
+      <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+    </label>
+    <button class="btn-header" style="background:#fff3c4;color:#7a5b00" onclick="copyShareLink()">🔗 نسخ رابط للأهالي</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('home')">🏠 الرئيسية</button>
+  <button class="tab" onclick="switchTab('add-points')">⭐ نقاط</button>
+  <button class="tab" onclick="switchTab('students')">👥 الطلاب</button>
+  <button class="tab" onclick="switchTab('teams')">🏅 الفرق</button>
+  <button class="tab" onclick="switchTab('log')">📋 السجل</button>
+  <button class="tab" onclick="switchTab('league')">⚽ دوري الرجال</button>
+</div>
+
+<!-- ===================== HOME ===================== -->
+<div class="content">
+<div id="page-home" class="page active">
+  <div id="public-mode-banner"></div>
+  <div class="card">
+    <div class="card-title">🔗 رابط مشاركة النقاط مع الأهالي</div>
+    <p style="font-size:0.78rem;color:var(--gray-text);line-height:1.6;margin-bottom:8px">
+      اضغط لإنشاء رابط "عرض فقط" يحتوي نقاط الطلاب والفرق كما هي الآن. أي شخص يفتح الرابط من جهازه يشاهد نفس البيانات وقت النسخ، بدون أي إمكانية للتعديل أو الإضافة.
+    </p>
+    <button class="btn btn-gold" onclick="copyShareLink()">🔗 إنشاء ونسخ رابط المشاركة</button>
+    <div class="share-box" id="share-box" style="display:none">
+      <input type="text" id="share-link-text" readonly onclick="this.select()">
+    </div>
+  </div>
+  <div class="card">
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-students">0</div>
+        <div class="stat-lbl">طالب</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-teams">0</div>
+        <div class="stat-lbl">فريق</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total-pts">0</div>
+        <div class="stat-lbl">نقطة كُلّية</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- هذا الأسبوع -->
+  <div class="card">
+    <div class="card-title">📅 هذا الأسبوع <span style="font-size:0.7rem;color:var(--gray-text);font-weight:500" id="week-range-label"></span></div>
+    <div id="week-leaders"></div>
+    <button class="btn btn-gold" style="margin-top:10px" onclick="startNewWeek()">🔄 بدء أسبوع جديد (أرشفة بدون فقد بيانات)</button>
+  </div>
+
+  <!-- Top 3 -->
+  <div class="card">
+    <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
+    <div id="home-top3"></div>
+  </div>
+
+  <!-- Team Standings -->
+  <div class="card">
+    <div class="card-title">🏅 ترتيب الفرق</div>
+    <div id="home-teams-rank"></div>
+  </div>
+</div>
+
+<!-- ===================== ADD POINTS ===================== -->
+<div id="page-add-points" class="page">
+  <!-- Individual Points -->
+  <div class="card">
+    <div class="card-title">⭐ منح نقاط فردية</div>
+    <div class="section-label">الطالب</div>
+    <select id="pts-student">
+      <option value="">— اختر الطالب —</option>
+    </select>
+
+    <div class="section-label">فئة النشاط</div>
+    <div class="cat-grid">
+      <button class="cat-btn selected" onclick="selectCat(this,'حضور وانتظام')">
+        <span class="cat-icon">📅</span>حضور وانتظام
+      </button>
+      <button class="cat-btn" onclick="selectCat(this,'مشاركة في نشاط')">
+        <span class="cat-icon">🎯</span>مشاركة في نشاط
+      </button>
+      <button class="cat-btn" onclick="selectCat(this,'حفظ قرآن / أذكار')">
+        <span class="cat-icon">📖</span>حفظ قرآن / أذكار
+      </button>
+      <button class="cat-btn" onclick="selectCat(this,'أخلاق وسلوك')">
+        <span class="cat-icon">🌸</span>أخلاق وسلوك
+      </button>
+      <button class="cat-btn" onclick="selectCat(this,'تميّز ومبادرة')">
+        <span class="cat-icon">💡</span>تميّز ومبادرة
+      </button>
+      <button class="cat-btn" onclick="selectCat(this,'أخرى')">
+        <span class="cat-icon">✏️</span>أخرى
+      </button>
+    </div>
+
+    <div class="section-label">عدد النقاط</div>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(1)">+1</button>
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(2)">+2</button>
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(3)">+3</button>
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(5)">+5</button>
+      <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(10)">+10</button>
+    </div>
+    <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
+    <input type="text" id="pts-note" placeholder="ملاحظة (اختياري)">
+    <div class="row">
+      <button class="btn btn-primary" onclick="givePoints(1)">✅ منح النقاط</button>
+      <button class="btn btn-danger" onclick="givePoints(-1)">➖ خصم النقاط</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Team Points -->
+  <div class="card">
+    <div class="card-title">🏅 نقاط جماعية للفريق</div>
+    <select id="pts-team">
+      <option value="">— اختر الفريق —</option>
+    </select>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(5)">+5</button>
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickTeamPts(20)">+20</button>
+    </div>
+    <input type="number" id="pts-team-amount" placeholder="عدد النقاط" min="1" value="5">
+    <input type="text" id="pts-team-note" placeholder="سبب (اختياري)">
+    <div class="row">
+      <button class="btn btn-gold" onclick="giveTeamPoints(1)">🏅 منح الفريق</button>
+      <button class="btn btn-danger" onclick="giveTeamPoints(-1)">➖ خصم الفريق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== STUDENTS ===================== -->
+<div id="page-students" class="page">
+  <div class="card">
+    <div class="card-title">➕ إضافة طالب</div>
+    <input type="text" id="new-student-name" placeholder="اسم الطالب">
+    <select id="new-student-team">
+      <option value="">— بدون فريق —</option>
+    </select>
+    <div class="section-label">صورة الطالب (اختياري)</div>
+    <input type="file" id="new-student-photo" accept="image/*" style="margin-bottom:10px">
+    <button class="btn btn-primary" onclick="addStudent()">إضافة</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 قائمة الطلاب</div>
+    <input type="text" id="students-search" placeholder="🔍 ابحث عن طالب بالاسم..." oninput="renderStudentsList()" style="margin-bottom:10px">
+    <div id="students-list"></div>
+  </div>
+</div>
+
+<!-- ===================== TEAMS ===================== -->
+<div id="page-teams" class="page">
+  <div class="card">
+    <div class="card-title">➕ إضافة فريق</div>
+    <input type="text" id="new-team-name" placeholder="اسم الفريق (مثال: فريق الصقر)">
+    <button class="btn btn-primary" onclick="addTeam()">إضافة الفريق</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 تطور نقاط الفرق عبر الأسابيع</div>
+    <div id="teams-chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏅 الفرق وأعضاؤها</div>
+    <div id="teams-list"></div>
+  </div>
+</div>
+
+<!-- ===================== LOG ===================== -->
+<div id="page-log" class="page">
+  <div class="card">
+    <div class="card-title">📋 سجل النقاط</div>
+    <div class="section-label">فلترة</div>
+    <select id="log-filter-team" onchange="renderLog()">
+      <option value="">كل الفرق</option>
+    </select>
+    <select id="log-filter-student" onchange="renderLog()">
+      <option value="">كل الطلاب</option>
+    </select>
+    <input type="date" id="log-filter-date" onchange="renderLog()">
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
+      <button class="btn btn-sm btn-danger" onclick="clearLog()">🗑️ مسح السجل</button>
+    </div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- ===================== LEAGUE (دوري الرجال) ===================== -->
+<div id="page-league" class="page">
+
+  <div class="card">
+    <div class="card-title">🏆 فريق الأسبوع</div>
+    <div id="league-team-of-week"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⭐ لاعب الأسبوع</div>
+    <div class="section-label">اختر لاعب الأسبوع يدويًا (الأخلاق، الالتزام...)</div>
+    <select id="player-of-week-select">
+      <option value="">— اختر لاعباً —</option>
+    </select>
+    <button class="btn btn-gold" onclick="setPlayerOfWeek()">⭐ تثبيت لاعب الأسبوع</button>
+    <div id="player-of-week-display" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚽ هدّاف الأسبوع</div>
+    <div id="top-scorer-week"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="card">
+    <div class="card-title">📝 تسجيل / جدولة مباراة</div>
+    <div class="section-label">الفريق الأول</div>
+    <select id="match-team-a"><option value="">— اختر الفريق —</option></select>
+    <div class="section-label">الفريق الثاني</div>
+    <select id="match-team-b"><option value="">— اختر الفريق —</option></select>
+
+    <div class="row">
+      <div style="flex:1">
+        <div class="section-label">التاريخ</div>
+        <input type="date" id="match-date">
+      </div>
+      <div style="flex:1">
+        <div class="section-label">الحالة</div>
+        <select id="match-status" onchange="toggleMatchScoreFields()">
+          <option value="scheduled">مباراة قادمة</option>
+          <option value="played">نتيجة مباراة سابقة</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="match-score-fields" style="display:none">
+      <div class="row">
+        <div style="flex:1">
+          <div class="section-label">نتيجة الفريق الأول</div>
+          <input type="number" id="match-score-a" min="0" value="0">
+        </div>
+        <div style="flex:1">
+          <div class="section-label">نتيجة الفريق الثاني</div>
+          <input type="number" id="match-score-b" min="0" value="0">
+        </div>
+      </div>
+      <div class="section-label">الأهداف الفردية (اختياري)</div>
+      <div id="match-scorers-area"></div>
+      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid);width:auto;margin-bottom:10px" onclick="addScorerRow()">➕ إضافة هدف لاعب</button>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveMatch()">💾 حفظ المباراة</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 المباريات القادمة</div>
+    <div id="upcoming-matches-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 نتائج المباريات السابقة</div>
+    <div id="played-matches-list"></div>
+  </div>
+
+</div>
+
+</div><!-- end content -->
+
+<div id="toast"></div>
+
+<script>
+// ===================== STATE =====================
+let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
+  students: [],   // {id, name, teamId, points, weekPoints, weekStartPoints, createdAt}
+  teams: [],      // {id, name, points, color, weekPoints, weekStartPoints}
+  log: [],        // {id, icon, text, time, meta, date}
+  weeks: [],      // أرشيف الأسابيع المنتهية: {id, label, from, to, studentsSnapshot, teamsSnapshot}
+  currentWeekStart: null, // ISO date لبداية الأسبوع الحالي
+  league: {
+    matches: [],     // {id, teamAId, teamBId, scoreA, scoreB, date, status:'played'|'scheduled', scorers:[{studentId, goals, teamId}]}
+    playerOfWeek: {} // { 'YYYY-Www': studentId }
+  }
+};
+
+// التأكد من توافق البيانات القديمة مع الحقول الجديدة (ترقية تلقائية بدون فقد بيانات)
+function ensureFields() {
+  if (!state.weeks) state.weeks = [];
+  if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
+  if (!state.league) state.league = { matches: [], playerOfWeek: {} };
+  if (!state.league.matches) state.league.matches = [];
+  if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
+  state.students.forEach(s => {
+    if (s.weekStartPoints === undefined) s.weekStartPoints = s.points;
+    if (!s.createdAt) s.createdAt = Date.now();
+  });
+  state.teams.forEach(t => {
+    if (!t.color) t.color = '#4caf7d';
+    if (t.weekStartPoints === undefined) t.weekStartPoints = t.points;
+    if (t.leaderId === undefined) t.leaderId = '';
+    if (t.viceId === undefined) t.viceId = '';
+  });
+  state.log.forEach(l => {
+    if (!l.id) l.id = Date.now() + Math.random();
+    if (!l.date) l.date = Date.now();
+    if (!l.isoDate) l.isoDate = new Date(l.date).toISOString().slice(0,10);
+  });
+}
+
+// نقاط الطالب/الفريق "هذا الأسبوع فقط" = الحالية - نقطة بداية الأسبوع
+function weekPointsOf(entity) {
+  return entity.points - (entity.weekStartPoints ?? entity.points);
+}
+
+function startOfWeekISO(d) {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=الأحد
+  date.setDate(date.getDate() - day);
+  date.setHours(0,0,0,0);
+  return date.toISOString();
+}
+
+let selectedCat = 'حضور وانتظام';
+
+function save() {
+  if (isPublicView) return; // وضع العرض فقط: لا حفظ نهائياً
+  localStorage.setItem('nadyState', JSON.stringify(state));
+}
+
+// ===================== رابط المشاركة (عرض فقط) =====================
+// نأخذ لقطة مصغّرة من البيانات المهمة فقط (بدون السجل أو الدوري) لتقليل حجم الرابط
+function buildShareSnapshot() {
+  return {
+    v: 1,
+    ts: Date.now(),
+    students: state.students.map(s => {
+      const team = state.teams.find(t => t.id == s.teamId);
+      return {
+        id: s.id, name: s.name, points: s.points,
+        teamId: s.teamId || '',
+        // الصور تُستثنى من رابط المشاركة لتفادي تضخّم الرابط بشكل كبير جداً
+      };
+    }),
+    teams: state.teams.map(t => ({
+      id: t.id, name: t.name, points: t.points, color: t.color || '#4caf7d',
+      leaderId: t.leaderId || '', viceId: t.viceId || ''
+    }))
+  };
+}
+
+function encodeSnapshot(snapshot) {
+  const json = JSON.stringify(snapshot);
+  // ترميز يدعم الأحرف العربية (UTF-8 → base64)
+  const utf8 = unescape(encodeURIComponent(json));
+  return btoa(utf8);
+}
+
+function decodeSnapshot(encoded) {
+  const utf8 = atob(encoded);
+  const json = decodeURIComponent(escape(utf8));
+  return JSON.parse(json);
+}
+
+function copyShareLink() {
+  if (!state.students.length) { toast('⚠️ أضف طلاباً أولاً'); return; }
+  const snapshot = buildShareSnapshot();
+  const encoded = encodeSnapshot(snapshot);
+  const baseUrl = location.origin + location.pathname;
+  const link = `${baseUrl}#view=${encoded}`;
+
+  const box = document.getElementById('share-box');
+  const input = document.getElementById('share-link-text');
+  if (input) input.value = link;
+  if (box) box.style.display = 'flex';
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link)
+      .then(() => toast('✅ تم نسخ الرابط — النقاط كما هي الآن'))
+      .catch(() => toast('📋 انسخ الرابط من الحقل الظاهر بالأسفل'));
+  } else {
+    if (input) { input.select(); document.execCommand('copy'); }
+    toast('📋 تم تجهيز الرابط، انسخه من الحقل بالأسفل');
+  }
+}
+
+// هل الصفحة مفتوحة كرابط مشاركة (عرض فقط)؟
+let isPublicView = false;
+let publicSnapshot = null;
+
+function detectPublicView() {
+  const hash = location.hash || '';
+  const match = hash.match(/^#view=(.+)$/);
+  if (!match) return false;
+  try {
+    publicSnapshot = decodeSnapshot(match[1]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// تحويل اللقطة العامة إلى نفس شكل state الداخلي حتى تعمل دوال العرض الموجودة كما هي
+function applyPublicSnapshotToState() {
+  state = {
+    students: publicSnapshot.students.map(s => ({ ...s, photo: '' })),
+    teams: publicSnapshot.teams.map(t => ({ ...t })),
+    log: [],
+    weeks: [],
+    currentWeekStart: startOfWeekISO(new Date()),
+    league: { matches: [], playerOfWeek: {} }
+  };
+  ensureFields();
+}
+
+// إخفاء كل عناصر التعديل/الإضافة في وضع العرض العام، وإبقاء الرئيسية + الطلاب + الفرق كعرض فقط
+function applyPublicViewRestrictions() {
+  // إخفاء أزرار وحقول التعديل في الهيدر
+  document.querySelectorAll('.header-btns').forEach(el => el.style.display = 'none');
+  // إخفاء تبويبات: نقاط، السجل، دوري الرجال (تبقى الرئيسية، الطلاب، الفرق فقط للعرض)
+  document.querySelectorAll('.tabs .tab').forEach(tabBtn => {
+    const label = tabBtn.textContent;
+    if (label.includes('نقاط') || label.includes('السجل') || label.includes('دوري')) {
+      tabBtn.style.display = 'none';
+    }
+  });
+  // إخفاء بطاقة "رابط المشاركة" نفسها وزر بدء أسبوع جديد
+  const shareCard = document.querySelector('#page-home .card');
+  if (shareCard) shareCard.style.display = 'none';
+  document.querySelectorAll('[onclick^="startNewWeek"]').forEach(b => b.style.display = 'none');
+  // إخفاء نموذج إضافة طالب/فريق وكل أزرار الحذف/التعديل/النقل/الصورة
+  const addStudentCard = document.querySelector('#page-students .card');
+  if (addStudentCard) addStudentCard.style.display = 'none';
+  const addTeamCard = document.querySelector('#page-teams .card');
+  if (addTeamCard) addTeamCard.style.display = 'none';
+  document.querySelectorAll('.student-avatar-upload, .avatar-edit-badge').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('[onclick^="removeStudent"], [onclick^="toggleMoveStudent"], [onclick^="removeTeam"], [onclick^="renameTeam"], [onclick^="changeTeamColor"]').forEach(el => {
+    const wrapper = el.closest('button, label');
+    if (wrapper) wrapper.style.display = 'none';
+  });
+  document.querySelectorAll('.leader-edit-row').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.move-row').forEach(el => el.style.display = 'none');
+
+  // شارة في الأعلى توضّح أن هذا عرض فقط ووقت آخر تحديث
+  const banner = document.getElementById('public-mode-banner');
+  if (banner) {
+    const time = new Date(publicSnapshot.ts).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' });
+    banner.innerHTML = `<div class="public-banner">
+      👁️ وضع العرض فقط — النقاط كما كانت لحظة نسخ الرابط
+      <div class="small">آخر تحديث: ${time}</div>
+    </div>`;
+  }
+
+  // تثبيت التبويب على الرئيسية دائماً عند الفتح
+  switchToHomeOnly();
+}
+
+function switchToHomeOnly() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const homeTab = document.querySelector('.tabs .tab');
+  if (homeTab) homeTab.classList.add('active');
+  const homePage = document.getElementById('page-home');
+  if (homePage) homePage.classList.add('active');
+}
+
+// ===================== TABS =====================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('page-' + tab).classList.add('active');
+  render();
+}
+
+// ===================== CATEGORIES =====================
+function selectCat(btn, cat) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedCat = cat;
+}
+
+function setQuickPts(n) {
+  document.getElementById('pts-amount').value = n;
+}
+function setQuickTeamPts(n) {
+  document.getElementById('pts-team-amount').value = n;
+}
+
+// تصغير وضغط الصورة قبل التخزين (لتفادي تضخم localStorage)
+function readImageCompressed(file, maxSize = 160, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addStudent() {
+  const name = document.getElementById('new-student-name').value.trim();
+  if (!name) { toast('أدخل اسم الطالب'); return; }
+  const teamId = document.getElementById('new-student-team').value;
+  const photoInput = document.getElementById('new-student-photo');
+  let photo = '';
+  if (photoInput && photoInput.files && photoInput.files[0]) {
+    try { photo = await readImageCompressed(photoInput.files[0]); }
+    catch { toast('⚠️ تعذّر قراءة الصورة'); }
+  }
+  const student = { id: Date.now(), name, teamId, points: 0, photo };
+  state.students.push(student);
+  logEntry('🧑', `تمت إضافة الطالب: ${name}`);
+  save(); render();
+  document.getElementById('new-student-name').value = '';
+  if (photoInput) photoInput.value = '';
+  toast('✅ تمت إضافة الطالب');
+}
+
+// تغيير/إضافة صورة طالب موجود
+async function changeStudentPhoto(id, fileInput) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+  const student = state.students.find(s => s.id === id);
+  if (!student) return;
+  try {
+    student.photo = await readImageCompressed(file);
+    save(); render();
+    toast('✅ تم تحديث الصورة');
+  } catch {
+    toast('⚠️ تعذّر قراءة الصورة');
+  }
+}
+
+function removeStudent(id) {
+  const s = state.students.find(s => s.id === id);
+  if (!confirm(`حذف ${s?.name}؟`)) return;
+  state.students = state.students.filter(s => s.id !== id);
+  state.teams.forEach(t => {
+    if (String(t.leaderId) === String(id)) t.leaderId = '';
+    if (String(t.viceId) === String(id)) t.viceId = '';
+  });
+  logEntry('🗑️', `تم حذف الطالب: ${s?.name}`);
+  save(); render();
+}
+
+// فتح/إغلاق محرر نقل الطالب لفريق آخر (عنصر select داخل الصف)
+function toggleMoveStudent(id) {
+  const row = document.getElementById('move-row-' + id);
+  if (!row) return;
+  const isOpen = row.style.display === 'flex';
+  // إغلاق كل صفوف النقل الأخرى المفتوحة
+  document.querySelectorAll('.move-row').forEach(r => r.style.display = 'none');
+  row.style.display = isOpen ? 'none' : 'flex';
+}
+
+// تنفيذ النقل الفعلي بعد اختيار الفريق من القائمة المنسدلة
+function confirmMoveStudent(id) {
+  const student = state.students.find(s => s.id === id);
+  if (!student) return;
+  const sel = document.getElementById('move-select-' + id);
+  const newTeamId = sel.value; // '' يعني بدون فريق
+
+  if (String(student.teamId || '') === String(newTeamId)) {
+    toast('الطالب موجود بهذا الفريق أصلاً'); return;
+  }
+
+  const oldTeam = state.teams.find(t => t.id == student.teamId);
+  const newTeam = newTeamId ? state.teams.find(t => t.id == newTeamId) : null;
+
+  // نقل نقاط الطالب من فريقه القديم إلى الجديد
+  if (oldTeam) oldTeam.points -= student.points;
+  if (newTeam) newTeam.points += student.points;
+
+  // إن كان الطالب قائداً أو نائباً في فريقه القديم، يُلغى التعيين عند مغادرته
+  if (oldTeam) {
+    if (String(oldTeam.leaderId) === String(student.id)) oldTeam.leaderId = '';
+    if (String(oldTeam.viceId) === String(student.id)) oldTeam.viceId = '';
+  }
+
+  student.teamId = newTeam ? newTeam.id : '';
+
+  const fromText = oldTeam ? oldTeam.name : 'بدون فريق';
+  const toText = newTeam ? newTeam.name : 'بدون فريق';
+  logEntry('🔄', `نُقل الطالب ${student.name}: ${fromText} ← ${toText}`);
+  save(); render();
+  toast(`✅ تم نقل ${student.name} إلى ${toText}`);
+}
+
+// ===================== TEAMS =====================
+function addTeam() {
+  const name = document.getElementById('new-team-name').value.trim();
+  if (!name) { toast('أدخل اسم الفريق'); return; }
+  if (state.teams.find(t => t.name === name)) { toast('الفريق موجود مسبقاً'); return; }
+  const defaultColors = ['#4caf7d','#42a5f5','#d4a017','#ec407a','#ab47bc','#26a69a','#ff7043','#789262'];
+  const color = defaultColors[state.teams.length % defaultColors.length];
+  state.teams.push({ id: Date.now(), name, points: 0, color });
+  logEntry('🏅', `تمت إضافة الفريق: ${name}`);
+  save(); render();
+  document.getElementById('new-team-name').value = '';
+  toast('✅ تمت إضافة الفريق');
+}
+
+function renameTeam(id) {
+  const team = state.teams.find(t => t.id == id);
+  const newName = prompt('اسم الفريق الجديد:', team.name);
+  if (!newName || !newName.trim()) return;
+  const trimmed = newName.trim();
+  if (state.teams.find(t => t.name === trimmed && t.id != id)) { toast('الاسم مستخدم مسبقاً'); return; }
+  logEntry('✏️', `تغيير اسم الفريق: ${team.name} ← ${trimmed}`);
+  team.name = trimmed;
+  save(); render();
+  toast('✅ تم تغيير الاسم');
+}
+
+// تغيير لون الفريق من خانة اختيار اللون
+function changeTeamColor(id, newColor) {
+  const team = state.teams.find(t => t.id == id);
+  if (!team) return;
+  team.color = newColor;
+  save(); render();
+}
+
+function removeTeam(id) {
+  const team = state.teams.find(t => t.id == id);
+  const members = state.students.filter(s => s.teamId == id);
+  const msg = members.length
+    ? `حذف فريق "${team.name}"؟\nسيتم إلغاء ربط ${members.length} طالب بالفريق.`
+    : `حذف فريق "${team.name}"؟`;
+  if (!confirm(msg)) return;
+  members.forEach(s => s.teamId = '');
+  state.teams = state.teams.filter(t => t.id != id);
+  logEntry('🗑️', `تم حذف الفريق: ${team.name}`);
+  save(); render();
+  toast('🗑️ تم حذف الفريق');
+}
+
+// تعيين قائد أو نائب قائد للفريق (role: 'leaderId' أو 'viceId')
+function setTeamLeader(teamId, role, studentId) {
+  const team = state.teams.find(t => t.id == teamId);
+  if (!team) return;
+  if (role === 'leaderId' && studentId && String(studentId) === String(team.viceId)) {
+    toast('⚠️ هذا الطالب نائب القائد بالفعل'); render(); return;
+  }
+  if (role === 'viceId' && studentId && String(studentId) === String(team.leaderId)) {
+    toast('⚠️ هذا الطالب القائد بالفعل'); render(); return;
+  }
+  team[role] = studentId || '';
+  const student = state.students.find(s => s.id == studentId);
+  const roleLabel = role === 'leaderId' ? 'قائد' : 'نائب قائد';
+  logEntry('👑', `تعيين ${roleLabel} فريق ${team.name}: ${student ? student.name : '— بلا تعيين —'}`);
+  save(); render();
+  toast('✅ تم التحديث');
+}
+
+// ===================== GIVE POINTS =====================
+function givePoints(dir) {
+  const sid = document.getElementById('pts-student').value;
+  const amt = parseInt(document.getElementById('pts-amount').value) || 0;
+  const note = document.getElementById('pts-note').value.trim();
+  if (!sid) { toast('اختر الطالب أولاً'); return; }
+  if (amt < 1) { toast('أدخل عدداً صحيحاً'); return; }
+
+  const student = state.students.find(s => s.id == sid);
+  const change = amt * dir;
+
+  student.points = student.points + change;
+
+  if (student.teamId) {
+    const team = state.teams.find(t => t.id == student.teamId);
+    if (team) team.points = team.points + change;
+  }
+
+  const noteText = note ? ` (${note})` : '';
+  const icon = dir === 1 ? '⭐' : '➖';
+  const sign = dir === 1 ? '+' : '-';
+  logEntry(icon, `${student.name} ${sign}${amt} نقطة | ${selectedCat}${noteText}`, {
+    kind: 'student', studentId: student.id, teamId: student.teamId || null, change
+  });
+  save(); render();
+  document.getElementById('pts-amount').value = 1;
+  document.getElementById('pts-note').value = '';
+  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}`);
+}
+
+function giveTeamPoints(dir) {
+  const tid = document.getElementById('pts-team').value;
+  const amt = parseInt(document.getElementById('pts-team-amount').value) || 0;
+  const note = document.getElementById('pts-team-note').value.trim();
+  if (!tid) { toast('اختر الفريق أولاً'); return; }
+  if (amt < 1) { toast('أدخل عدداً صحيحاً'); return; }
+
+  const team = state.teams.find(t => t.id == tid);
+  const change = amt * dir;
+  team.points = team.points + change;
+
+  const members = state.students.filter(s => s.teamId == tid);
+  const share = Math.floor(amt / (members.length || 1));
+  const memberShares = [];
+  members.forEach(s => {
+    const memberChange = share * dir;
+    s.points = s.points + memberChange;
+    memberShares.push({ studentId: s.id, amount: memberChange });
+  });
+
+  const noteText = note ? ` (${note})` : '';
+  const icon = dir === 1 ? '🏅' : '➖';
+  const sign = dir === 1 ? '+' : '-';
+  logEntry(icon, `فريق ${team.name} ${sign}${amt} نقطة جماعية${noteText}`, {
+    kind: 'team', teamId: team.id, change, memberShares
+  });
+  save(); render();
+  document.getElementById('pts-team-amount').value = 5;
+  document.getElementById('pts-team-note').value = '';
+  toast(`${icon} ${sign}${amt} نقطة لفريق ${team.name}`);
+}
+
+// ===================== LOG =====================
+function logEntry(icon, text, meta) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+  const isoDate = now.toISOString().slice(0,10); // YYYY-MM-DD لاستخدامه بالفلترة
+  state.log.unshift({ id: Date.now() + Math.random(), icon, text, time, date: now.getTime(), isoDate, meta: meta || null });
+  if (state.log.length > 200) state.log.pop();
+}
+
+function clearLog() {
+  if (!confirm('مسح كل السجل؟')) return;
+  state.log = [];
+  save(); render();
+}
+
+// ===================== الأسابيع (أرشيف بدون فقد بيانات) =====================
+function getWeekLabel(isoStart) {
+  const d = new Date(isoStart);
+  return d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// بدء أسبوع جديد: يحفظ لقطة (أرشيف) لنقاط هذا الأسبوع للجميع، ثم يصفّر عداد "نقاط الأسبوع" فقط
+// النقاط الإجمالية (points) لا تُحذف أبداً ولا تتأثر — فقط نقطة البداية المرجعية تتحدث
+function startNewWeek() {
+  if (!confirm('بدء أسبوع جديد؟\n\nسيتم حفظ نقاط هذا الأسبوع بالأرشيف، والنقاط الكلية للطلاب والفرق ستبقى محفوظة كاملة بدون أي حذف.')) return;
+
+  const snapshot = {
+    id: Date.now(),
+    label: `أسبوع ${getWeekLabel(state.currentWeekStart)} – ${getWeekLabel(new Date().toISOString())}`,
+    from: state.currentWeekStart,
+    to: new Date().toISOString(),
+    studentsSnapshot: state.students.map(s => ({
+      id: s.id, name: s.name, teamId: s.teamId,
+      weekPoints: weekPointsOf(s), totalPoints: s.points
+    })),
+    teamsSnapshot: state.teams.map(t => ({
+      id: t.id, name: t.name, color: t.color,
+      weekPoints: weekPointsOf(t), totalPoints: t.points
+    }))
+  };
+  state.weeks.push(snapshot);
+  if (state.weeks.length > 52) state.weeks.shift(); // الاحتفاظ بسنة كاملة كحد أقصى لتفادي تضخم التخزين
+
+  state.students.forEach(s => s.weekStartPoints = s.points);
+  state.teams.forEach(t => t.weekStartPoints = t.points);
+  state.currentWeekStart = startOfWeekISO(new Date());
+
+  logEntry('📅', `بدأ أسبوع جديد: ${snapshot.label}`);
+  save(); render();
+  toast('✅ بدأ الأسبوع الجديد، والنقاط الكلية محفوظة بالكامل');
+}
+
+// حذف سطر واحد من السجل + التراجع عن أثره على النقاط (إن وُجد)
+function removeLogEntry(id) {
+  const entry = state.log.find(l => l.id === id);
+  if (!entry) return;
+
+  if (!confirm('حذف هذا السطر من السجل؟\nسيتم التراجع عن أثره على النقاط إن وُجد.')) return;
+
+  // التراجع عن تأثير الحركة على النقاط حسب نوعها
+  if (entry.meta) {
+    const m = entry.meta;
+    if (m.kind === 'student') {
+      const student = state.students.find(s => s.id == m.studentId);
+      if (student) student.points -= m.change;
+      if (m.teamId) {
+        const team = state.teams.find(t => t.id == m.teamId);
+        if (team) team.points -= m.change;
+      }
+    } else if (m.kind === 'team') {
+      const team = state.teams.find(t => t.id == m.teamId);
+      if (team) team.points -= m.change;
+      if (m.memberShares) {
+        m.memberShares.forEach(ms => {
+          const student = state.students.find(s => s.id == ms.studentId);
+          if (student) student.points -= ms.amount;
+        });
+      }
+    }
+  }
+
+  state.log = state.log.filter(l => l.id !== id);
+  save(); render();
+  toast('🗑️ تم حذف السطر من السجل');
+}
+
+// ===================== TOAST =====================
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ===================== RENDER =====================
+function render() {
+  renderSelects();
+  renderHome();
+  renderStudentsList();
+  renderTeamsList();
+  renderTeamsChart();
+  renderLog();
+  updateStats();
+  renderLeaguePage();
+}
+
+function renderSelects() {
+  // student select
+  const ss = document.getElementById('pts-student');
+  const sv = ss.value;
+  ss.innerHTML = '<option value="">— اختر الطالب —</option>';
+  state.students.slice().sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(s => {
+    const team = state.teams.find(t => t.id == s.teamId);
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name + (team ? ` – ${team.name}` : '');
+    ss.appendChild(opt);
+  });
+  if (sv) ss.value = sv;
+
+  // team select (add points)
+  const ts = document.getElementById('pts-team');
+  const tv = ts.value;
+  ts.innerHTML = '<option value="">— اختر الفريق —</option>';
+  state.teams.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id; opt.textContent = t.name;
+    ts.appendChild(opt);
+  });
+  if (tv) ts.value = tv;
+
+  // team select (student form)
+  const ns = document.getElementById('new-student-team');
+  const nv = ns.value;
+  ns.innerHTML = '<option value="">— بدون فريق —</option>';
+  state.teams.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id; opt.textContent = t.name;
+    ns.appendChild(opt);
+  });
+  if (nv) ns.value = nv;
+
+  // === فلترة السجل ===
+  fillTeamSelect('log-filter-team', '— كل الفرق —');
+  const lfs = document.getElementById('log-filter-student');
+  if (lfs) {
+    const lfsv = lfs.value;
+    lfs.innerHTML = '<option value="">— كل الطلاب —</option>';
+    state.students.slice().sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name;
+      lfs.appendChild(opt);
+    });
+    if (lfsv) lfs.value = lfsv;
+  }
+
+  // === دوري الرجال: قوائم الفرق والاعب الأسبوع ===
+  fillTeamSelect('match-team-a', '— اختر الفريق —');
+  fillTeamSelect('match-team-b', '— اختر الفريق —');
+  const pow = document.getElementById('player-of-week-select');
+  if (pow) {
+    const powv = pow.value;
+    pow.innerHTML = '<option value="">— اختر لاعباً —</option>';
+    state.students.slice().sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(s => {
+      const team = state.teams.find(t => t.id == s.teamId);
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name + (team ? ` – ${team.name}` : '');
+      pow.appendChild(opt);
+    });
+    if (powv) pow.value = powv;
+  }
+}
+
+// دالة مساعدة لتعبية أي select بقائمة الفرق دون تكرار الكود
+function fillTeamSelect(elId, placeholder) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const v = el.value;
+  el.innerHTML = `<option value="">${placeholder}</option>`;
+  state.teams.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id; opt.textContent = t.name;
+    el.appendChild(opt);
+  });
+  if (v) el.value = v;
+}
+
+// ===================== BADGES (الشارات والأوسمة) =====================
+// كل شارة لها شرط حسابي واضح من بيانات الطالب وسجله
+function getStudentBadges(student) {
+  const badges = [];
+  const studentLogs = state.log.filter(l => l.meta && l.meta.kind === 'student' && l.meta.studentId == student.id);
+  const positiveLogs = studentLogs.filter(l => l.meta.change > 0);
+  const attendanceLogs = positiveLogs.filter(l => l.text.includes('حضور وانتظام'));
+  const quranLogs = positiveLogs.filter(l => l.text.includes('حفظ قرآن'));
+  const initiativeLogs = positiveLogs.filter(l => l.text.includes('تميّز ومبادرة'));
+  const moralsLogs = positiveLogs.filter(l => l.text.includes('أخلاق وسلوك'));
+
+  if (student.points >= 100) badges.push({ icon: '👑', label: 'نجم النادي', color: '#d4a017' });
+  else if (student.points >= 50) badges.push({ icon: '🌟', label: '٥٠+ نقطة', color: '#d4a017' });
+
+  if (attendanceLogs.length >= 5) badges.push({ icon: '📅', label: 'ملتزم بالحضور', color: '#2d7a4f' });
+  if (quranLogs.length >= 3) badges.push({ icon: '📖', label: 'حافظ مميز', color: '#4caf7d' });
+  if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة', color: '#1565c0' });
+  if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق', color: '#ab47bc' });
+  if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً', color: '#e53935' });
+
+  return badges;
+}
+
+function renderBadges(student) {
+  const badges = getStudentBadges(student);
+  if (!badges.length) return '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${
+    badges.map(b => `<span style="background:${b.color}1a;color:${b.color};border:1px solid ${b.color}55;border-radius:8px;padding:2px 7px;font-size:0.65rem;font-weight:700;white-space:nowrap">${b.icon} ${b.label}</span>`).join('')
+  }</div>`;
+}
+
+function updateStats() {
+  document.getElementById('stat-students').textContent = state.students.length;
+  document.getElementById('stat-teams').textContent = state.teams.length;
+  const total = state.students.reduce((s, x) => s + x.points, 0);
+  document.getElementById('stat-total-pts').textContent = total;
+}
+
+function renderHome() {
+  // ملخص الأسبوع الحالي
+  document.getElementById('week-range-label').textContent =
+    'منذ ' + getWeekLabel(state.currentWeekStart);
+  const wl = document.getElementById('week-leaders');
+  const studentsByWeek = state.students.slice().sort((a,b) => weekPointsOf(b) - weekPointsOf(a));
+  const teamsByWeek = state.teams.slice().sort((a,b) => weekPointsOf(b) - weekPointsOf(a));
+  const topStudentWeek = studentsByWeek[0];
+  const topTeamWeek = teamsByWeek[0];
+  if (!topStudentWeek && !topTeamWeek) {
+    wl.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد بيانات بعد لهذا الأسبوع</p></div>';
+  } else {
+    wl.innerHTML = `
+      ${topStudentWeek ? `<div class="student-item"><div class="student-info"><span style="font-size:1.3rem">🌟</span><div><div class="student-name">${topStudentWeek.name}</div><div class="student-team">طالب الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topStudentWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
+      ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#4caf7d'};width:18px;height:18px"></span><div><div class="student-name">${topTeamWeek.name}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
+    `;
+  }
+
+  // Top 3
+  const top = document.getElementById('home-top3');
+  const sorted = state.students.slice().sort((a,b) => b.points - a.points).slice(0, 5);
+  if (!sorted.length) {
+    top.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>لا يوجد طلاب بعد</p></div>';
+  } else {
+    top.innerHTML = sorted.map((s, i) => {
+      const team = state.teams.find(t => t.id == s.teamId);
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+      const dot = team ? `<span class="team-color-dot" style="background:${team.color || '#4caf7d'}"></span>` : '';
+      return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
+        <div class="rank-badge">${medal}</div>
+        <div class="rank-name">${s.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${dot}${team ? team.name : ''}</span></div>
+        <div class="rank-pts">${s.points}<span class="pts-label"> نقطة</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Teams rank
+  const tr = document.getElementById('home-teams-rank');
+  const sortedTeams = state.teams.slice().sort((a,b) => b.points - a.points);
+  if (!sortedTeams.length) {
+    tr.innerHTML = '<div class="empty"><div class="empty-icon">🏅</div><p>لا توجد فرق بعد</p></div>';
+  } else {
+    tr.innerHTML = sortedTeams.map((t, i) => {
+      const members = state.students.filter(s => s.teamId == t.id).length;
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+      return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
+        <div class="rank-badge">${medal}</div>
+        <div class="rank-name"><span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${members} عضو</span></div>
+        <div class="rank-pts">${t.points}<span class="pts-label"> نقطة</span></div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderStudentsList() {
+  const el = document.getElementById('students-list');
+  if (!state.students.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>أضف الطلاب أولاً</p></div>';
+    return;
+  }
+  const searchInput = document.getElementById('students-search');
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  let filtered = state.students.slice();
+  if (query) filtered = filtered.filter(s => s.name.toLowerCase().includes(query));
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>لا يوجد طالب مطابق للبحث</p></div>';
+    return;
+  }
+
+  const sorted = filtered.sort((a,b) => b.points - a.points);
+  el.innerHTML = sorted.map(s => {
+    const team = state.teams.find(t => t.id == s.teamId);
+    const initials = s.name.split(' ').slice(0,2).map(w => w[0]).join('');
+    const teamOptions = state.teams.map(t =>
+      `<option value="${t.id}" ${t.id == s.teamId ? 'selected' : ''}>${t.name}</option>`
+    ).join('');
+    const avatarInner = s.photo
+      ? `<img src="${s.photo}" alt="${s.name}">`
+      : initials;
+    return `<div>
+      <div class="student-item">
+        <div class="student-info">
+          <div class="student-avatar">
+            ${avatarInner}
+            <input type="file" accept="image/*" class="student-avatar-upload" title="تغيير الصورة" onchange="changeStudentPhoto(${s.id}, this)">
+            <div class="avatar-edit-badge">📷</div>
+          </div>
+          <div>
+            <div class="student-name">${s.name}</div>
+            <div class="student-team">${team ? `<span class="team-color-dot" style="background:${team.color || '#4caf7d'}"></span>${team.name}` : 'بدون فريق'}</div>
+            ${renderBadges(s)}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="student-pts" style="color:${s.points < 0 ? '#e53935' : 'var(--green-mid)'}">${s.points}<div class="pts-label">نقطة</div></div>
+          <button class="btn btn-sm" style="width:auto;background:#e3f2fd;color:#1565c0" onclick="toggleMoveStudent(${s.id})">🔄</button>
+          <button class="btn btn-sm btn-danger" onclick="removeStudent(${s.id})">🗑</button>
+        </div>
+      </div>
+      <div id="move-row-${s.id}" class="move-row" style="display:none;gap:8px;margin:-4px 0 10px;padding:0 4px">
+        <select id="move-select-${s.id}" style="margin-bottom:0">
+          <option value="">— بدون فريق —</option>
+          ${teamOptions}
+        </select>
+        <button class="btn btn-sm btn-primary" style="width:auto" onclick="confirmMoveStudent(${s.id})">نقل</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// رسم بياني SVG بسيط (بدون مكتبات خارجية) لتطور نقاط كل فريق عبر الأسابيع المؤرشفة + الأسبوع الحالي
+function renderTeamsChart() {
+  const el = document.getElementById('teams-chart');
+  if (!el) return;
+  if (!state.teams.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><p>أضف فرقاً لعرض الرسم البياني</p></div>';
+    return;
+  }
+
+  // بناء سلسلة نقاط لكل أسبوع (الأرشيف + الأسبوع الحالي) لكل فريق
+  const weeksData = state.weeks.map(w => ({
+    label: getWeekLabel(w.from),
+    points: state.teams.map(t => {
+      const snap = w.teamsSnapshot.find(s => s.id == t.id);
+      return snap ? snap.weekPoints : 0;
+    })
+  }));
+  weeksData.push({
+    label: 'الحالي',
+    points: state.teams.map(t => weekPointsOf(t))
+  });
+
+  if (weeksData.length < 2) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><p>سيظهر الرسم البياني بعد إنهاء أسبوع واحد على الأقل</p></div>';
+    return;
+  }
+
+  const w = 320, h = 180, padL = 30, padB = 24, padT = 10, padR = 10;
+  const allVals = weeksData.flatMap(wd => wd.points);
+  const maxVal = Math.max(1, ...allVals);
+  const minVal = Math.min(0, ...allVals);
+  const range = (maxVal - minVal) || 1;
+  const stepX = (w - padL - padR) / (weeksData.length - 1);
+
+  const yOf = v => padT + (h - padT - padB) * (1 - (v - minVal) / range);
+  const xOf = i => padL + stepX * i;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;background:white;border-radius:10px">`;
+  // خط الصفر
+  svg += `<line x1="${padL}" y1="${yOf(0)}" x2="${w-padR}" y2="${yOf(0)}" stroke="#ddd" stroke-width="1"/>`;
+
+  state.teams.forEach(t => {
+    const color = t.color || '#4caf7d';
+    const pts = weeksData.map((wd, i) => {
+      const idx = state.teams.indexOf(t);
+      return [xOf(i), yOf(wd.points[idx])];
+    });
+    const path = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/>`;
+    pts.forEach(p => { svg += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${color}"/>`; });
+  });
+
+  // تسميات المحور السيني (أول، وسط، أخير فقط لتفادي الازدحام)
+  weeksData.forEach((wd, i) => {
+    if (i === 0 || i === weeksData.length - 1 || i === Math.floor(weeksData.length/2)) {
+      svg += `<text x="${xOf(i)}" y="${h-6}" font-size="8" fill="#777" text-anchor="middle">${wd.label}</text>`;
+    }
+  });
+
+  svg += `</svg>`;
+
+  const legend = state.teams.map(t =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;margin-left:10px">
+      <span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}
+    </span>`
+  ).join('');
+
+  el.innerHTML = svg + `<div style="margin-top:8px;display:flex;flex-wrap:wrap">${legend}</div>`;
+}
+
+function renderTeamsList() {
+  const el = document.getElementById('teams-list');
+  if (!state.teams.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🏅</div><p>أضف فريقاً أولاً</p></div>';
+    return;
+  }
+  el.innerHTML = state.teams.slice().sort((a,b) => b.points - a.points).map((t) => {
+    const members = state.students.filter(s => s.teamId == t.id);
+    const ptsColor = t.points < 0 ? '#e53935' : 'var(--green-mid)';
+    const teamColor = t.color || '#4caf7d';
+    const leader = state.students.find(s => s.id == t.leaderId);
+    const vice = state.students.find(s => s.id == t.viceId);
+    const memberOptions = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    return `<div class="team-card" style="background:${teamColor}1a;border-right-color:${teamColor}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="team-name" style="display:flex;align-items:center;gap:8px">
+            <span class="team-color-dot" style="background:${teamColor};width:14px;height:14px"></span>
+            ${t.name}
+          </div>
+          <div class="team-pts" style="color:${ptsColor}">${t.points} <span style="font-size:1rem;font-weight:500">نقطة</span></div>
+          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.slice(0,4).map(m => m.name.split(' ')[0]).join('، ') + (members.length > 4 ? '...' : '') : ''}</div>
+          <div class="team-leaders">
+            <div><span class="lbl">👑 القائد: </span>${leader ? `<b>${leader.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
+            <div><span class="lbl">🥈 نائب القائد: </span>${vice ? `<b>${vice.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-direction:column;align-items:stretch">
+          <label class="btn btn-sm" style="background:white;border:1px solid ${teamColor};display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:5px 10px">
+            🎨 لون
+            <input type="color" value="${teamColor}" style="width:22px;height:22px;padding:0;border:none;border-radius:6px;cursor:pointer;background:none"
+              onchange="changeTeamColor(${t.id}, this.value)">
+          </label>
+          <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:1px solid var(--green-mid)" onclick="renameTeam(${t.id})">✏️ تعديل</button>
+          <button class="btn btn-sm btn-danger" onclick="removeTeam(${t.id})">🗑️ حذف</button>
+        </div>
+      </div>
+      ${members.length ? `
+      <div class="leader-edit-row">
+        <select onchange="setTeamLeader(${t.id}, 'leaderId', this.value)">
+          <option value="">👑 اختر القائد</option>
+          ${memberOptions.replace(`value="${t.leaderId}"`, `value="${t.leaderId}" selected`)}
+        </select>
+        <select onchange="setTeamLeader(${t.id}, 'viceId', this.value)">
+          <option value="">🥈 اختر نائب القائد</option>
+          ${memberOptions.replace(`value="${t.viceId}"`, `value="${t.viceId}" selected`)}
+        </select>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderLog() {
+  const el = document.getElementById('log-list');
+  if (!state.log.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>السجل فارغ</p></div>';
+    return;
+  }
+
+  const teamFilter = document.getElementById('log-filter-team')?.value || '';
+  const studentFilter = document.getElementById('log-filter-student')?.value || '';
+  const dateFilter = document.getElementById('log-filter-date')?.value || '';
+
+  let filtered = state.log.slice();
+  if (teamFilter) {
+    filtered = filtered.filter(l => l.meta && (
+      (l.meta.kind === 'team' && String(l.meta.teamId) === teamFilter) ||
+      (l.meta.kind === 'student' && String(l.meta.teamId) === teamFilter)
+    ));
+  }
+  if (studentFilter) {
+    filtered = filtered.filter(l => l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === studentFilter);
+  }
+  if (dateFilter) {
+    filtered = filtered.filter(l => l.isoDate === dateFilter);
+  }
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>لا توجد نتائج مطابقة للفلترة</p></div>';
+    return;
+  }
+
+  el.innerHTML = filtered.slice(0, 80).map(l =>
+    `<div class="log-item" style="justify-content:space-between">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="log-icon">${l.icon}</div>
+        <div>
+          <div>${l.text}</div>
+          <div class="log-time">${l.time}</div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-danger" style="width:auto;flex-shrink:0" onclick="removeLogEntry(${l.id})">🗑</button>
+    </div>`
+  ).join('');
+}
+
+function resetLogFilters() {
+  document.getElementById('log-filter-team').value = '';
+  document.getElementById('log-filter-student').value = '';
+  document.getElementById('log-filter-date').value = '';
+  renderLog();
+}
+
+// ===================== EXPORT / IMPORT =====================
+function exportData() {
+  const date = new Date().toLocaleDateString('ar').replace(/\//g, '-');
+  const filename = `نقاط_النادي_${date}.json`;
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  toast('📤 تم حفظ النسخة بنجاح');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.students || !imported.teams) {
+        toast('⚠️ الملف غير صحيح'); return;
+      }
+      if (!confirm(`استيراد البيانات؟ سيتم استبدال البيانات الحالية.`)) return;
+      state = imported;
+      ensureFields();
+      save(); render();
+      toast('✅ تم تحميل البيانات بنجاح');
+    } catch {
+      toast('⚠️ خطأ في قراءة الملف');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ===================== LEAGUE (دوري الرجال) =====================
+
+function toggleMatchScoreFields() {
+  const status = document.getElementById('match-status').value;
+  const fields = document.getElementById('match-score-fields');
+  fields.style.display = status === 'played' ? 'block' : 'none';
+}
+
+let scorerRowCount = 0;
+function addScorerRow() {
+  scorerRowCount++;
+  const area = document.getElementById('match-scorers-area');
+  const rowId = 'scorer-row-' + scorerRowCount;
+  const studentOptions = state.students.slice().sort((a,b) => a.name.localeCompare(b.name,'ar'))
+    .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.id = rowId;
+  row.style.marginBottom = '8px';
+  row.innerHTML = `
+    <select class="scorer-student" style="margin-bottom:0">
+      <option value="">— اختر اللاعب —</option>
+      ${studentOptions}
+    </select>
+    <input type="number" class="scorer-goals" min="1" value="1" style="max-width:70px;margin-bottom:0">
+    <button type="button" class="btn btn-sm btn-danger" style="width:auto" onclick="document.getElementById('${rowId}').remove()">✕</button>
+  `;
+  area.appendChild(row);
+}
+
+function saveMatch() {
+  const teamAId = document.getElementById('match-team-a').value;
+  const teamBId = document.getElementById('match-team-b').value;
+  const date = document.getElementById('match-date').value || new Date().toISOString().slice(0,10);
+  const status = document.getElementById('match-status').value;
+
+  if (!teamAId || !teamBId) { toast('⚠️ اختر الفريقين'); return; }
+  if (teamAId === teamBId) { toast('⚠️ لا يمكن أن يلعب الفريق ضد نفسه'); return; }
+
+  const teamA = state.teams.find(t => t.id == teamAId);
+  const teamB = state.teams.find(t => t.id == teamBId);
+
+  const match = {
+    id: Date.now(),
+    teamAId, teamBId, date, status,
+    scoreA: 0, scoreB: 0, scorers: []
+  };
+
+  if (status === 'played') {
+    match.scoreA = parseInt(document.getElementById('match-score-a').value) || 0;
+    match.scoreB = parseInt(document.getElementById('match-score-b').value) || 0;
+
+    document.querySelectorAll('#match-scorers-area .row').forEach(row => {
+      const sid = row.querySelector('.scorer-student').value;
+      const goals = parseInt(row.querySelector('.scorer-goals').value) || 0;
+      if (sid && goals > 0) {
+        const student = state.students.find(s => s.id == sid);
+        match.scorers.push({ studentId: sid, goals, teamId: student ? student.teamId : null });
+      }
+    });
+
+    logEntry('⚽', `${teamA.name} ${match.scoreA} - ${match.scoreB} ${teamB.name}`);
+  } else {
+    logEntry('📅', `مباراة قادمة: ${teamA.name} ضد ${teamB.name} – ${date}`);
+  }
+
+  state.league.matches.unshift(match);
+  save(); render();
+
+  document.getElementById('match-score-a').value = 0;
+  document.getElementById('match-score-b').value = 0;
+  document.getElementById('match-scorers-area').innerHTML = '';
+  scorerRowCount = 0;
+  toast('✅ تم حفظ المباراة');
+}
+
+function deleteMatch(id) {
+  if (!confirm('حذف هذه المباراة؟')) return;
+  state.league.matches = state.league.matches.filter(m => m.id !== id);
+  save(); render();
+  toast('🗑️ تم حذف المباراة');
+}
+
+// حساب نقاط الدوري لكل فريق (3 فوز / 1 تعادل / 0 خسارة) ضمن مباريات أسبوع معيّن أو كل الأوقات
+function computeStandings(matches) {
+  const table = {}; // teamId -> {points, gf, ga, played}
+  state.teams.forEach(t => table[t.id] = { teamId: t.id, points: 0, gf: 0, ga: 0, played: 0, wins: 0 });
+
+  matches.filter(m => m.status === 'played').forEach(m => {
+    const a = table[m.teamAId], b = table[m.teamBId];
+    if (!a || !b) return;
+    a.played++; b.played++;
+    a.gf += m.scoreA; a.ga += m.scoreB;
+    b.gf += m.scoreB; b.ga += m.scoreA;
+    if (m.scoreA > m.scoreB) { a.points += 3; a.wins++; }
+    else if (m.scoreB > m.scoreA) { b.points += 3; b.wins++; }
+    else { a.points += 1; b.points += 1; }
+  });
+
+  return Object.values(table).sort((x,y) => y.points - x.points || (y.gf - y.ga) - (x.gf - x.ga));
+}
+
+function renderTeamOfWeek() {
+  const el = document.getElementById('league-team-of-week');
+  if (!el) return;
+  const weekMatches = state.league.matches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
+  if (!weekMatches.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-icon">⚽</div><p>لا توجد نتائج مباريات هذا الأسبوع بعد</p></div>';
+    return;
+  }
+  const standings = computeStandings(weekMatches).filter(r => r.played > 0);
+  if (!standings.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد نتائج كافية بعد</p></div>';
+    return;
+  }
+  const top = standings[0];
+  const team = state.teams.find(t => t.id == top.teamId);
+  el.innerHTML = `<div class="team-card" style="background:${(team.color||'#4caf7d')}1a;border-right-color:${team.color||'#4caf7d'}">
+    <div class="team-name" style="display:flex;align-items:center;gap:8px">
+      <span class="team-color-dot" style="background:${team.color||'#4caf7d'};width:16px;height:16px"></span>🏆 ${team.name}
+    </div>
+    <div class="team-count">${top.points} نقطة دوري هذا الأسبوع (${top.wins} فوز) | أهداف: ${top.gf} - ${top.ga}</div>
+  </div>`;
+}
+
+function currentWeekKey() {
+  return state.currentWeekStart.slice(0,10);
+}
+
+function setPlayerOfWeek() {
+  const sid = document.getElementById('player-of-week-select').value;
+  if (!sid) { toast('⚠️ اختر لاعباً أولاً'); return; }
+  const student = state.students.find(s => s.id == sid);
+  state.league.playerOfWeek[currentWeekKey()] = sid;
+  logEntry('⭐', `لاعب الأسبوع: ${student.name}`);
+  save(); render();
+  toast(`✅ تم تثبيت ${student.name} كلاعب الأسبوع`);
+}
+
+function renderPlayerOfWeek() {
+  const el = document.getElementById('player-of-week-display');
+  if (!el) return;
+  const sid = state.league.playerOfWeek[currentWeekKey()];
+  if (!sid) { el.innerHTML = ''; return; }
+  const student = state.students.find(s => s.id == sid);
+  if (!student) { el.innerHTML = ''; return; }
+  const team = state.teams.find(t => t.id == student.teamId);
+  el.innerHTML = `<div class="student-item">
+    <div class="student-info">
+      <span style="font-size:1.4rem">⭐</span>
+      <div><div class="student-name">${student.name}</div><div class="student-team">${team ? team.name : ''}</div></div>
+    </div>
+  </div>`;
+}
+
+function renderTopScorerWeek() {
+  const el = document.getElementById('top-scorer-week');
+  if (!el) return;
+  const weekMatches = state.league.matches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
+  const goalsByStudent = {};
+  weekMatches.forEach(m => m.scorers.forEach(sc => {
+    goalsByStudent[sc.studentId] = (goalsByStudent[sc.studentId] || 0) + sc.goals;
+  }));
+  const entries = Object.entries(goalsByStudent).sort((a,b) => b[1] - a[1]);
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد أهداف مسجلة هذا الأسبوع بعد</p></div>';
+    return;
+  }
+  el.innerHTML = entries.slice(0,5).map(([sid, goals], i) => {
+    const student = state.students.find(s => s.id == sid);
+    if (!student) return '';
+    const team = state.teams.find(t => t.id == student.teamId);
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+    return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
+      <div class="rank-badge">${medal}</div>
+      <div class="rank-name">${student.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${team ? team.name : ''}</span></div>
+      <div class="rank-pts">${goals}<span class="pts-label"> هدف</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMatchesLists() {
+  const upcomingEl = document.getElementById('upcoming-matches-list');
+  const playedEl = document.getElementById('played-matches-list');
+  if (!upcomingEl || !playedEl) return;
+
+  const upcoming = state.league.matches.filter(m => m.status === 'scheduled').sort((a,b) => a.date.localeCompare(b.date));
+  const played = state.league.matches.filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date));
+
+  const teamName = id => { const t = state.teams.find(t => t.id == id); return t ? t.name : '—'; };
+  const teamColorOf = id => { const t = state.teams.find(t => t.id == id); return t ? (t.color || '#4caf7d') : '#999'; };
+
+  upcomingEl.innerHTML = upcoming.length ? upcoming.map(m => `
+    <div class="log-item" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:700">
+          <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
+          <span style="color:var(--gray-text);font-weight:500"> ضد </span>
+          <span class="team-color-dot" style="background:${teamColorOf(m.teamBId)}"></span>${teamName(m.teamBId)}
+        </div>
+        <div class="log-time">${m.date}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
+    </div>
+  `).join('') : '<div class="empty" style="padding:16px"><p>لا توجد مباريات قادمة</p></div>';
+
+  playedEl.innerHTML = played.length ? played.map(m => {
+    const scorersText = m.scorers.length
+      ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `${s.name} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
+      : '';
+    return `
+    <div class="log-item" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:700">
+          <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
+          <span style="color:var(--green-mid)"> ${m.scoreA} - ${m.scoreB} </span>
+          <span class="team-color-dot" style="background:${teamColorOf(m.teamBId)}"></span>${teamName(m.teamBId)}
+        </div>
+        <div class="log-time">${m.date}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:16px"><p>لا توجد نتائج مباريات سابقة</p></div>';
+}
+
+function renderLeaguePage() {
+  if (!document.getElementById('page-league')) return;
+  renderTeamOfWeek();
+  renderPlayerOfWeek();
+  renderTopScorerWeek();
+  renderMatchesLists();
+}
+
+// Init
+isPublicView = detectPublicView();
+if (isPublicView) {
+  applyPublicSnapshotToState();
+} else {
+  ensureFields();
+}
+const matchDateEl = document.getElementById('match-date');
+if (matchDateEl) matchDateEl.value = new Date().toISOString().slice(0,10);
+render();
+if (isPublicView) applyPublicViewRestrictions();
+
+// Register Service Worker (يُعطَّل في وضع العرض العام لتفادي أي تخزين/تعارض)
+if ('serviceWorker' in navigator && !isPublicView) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error', e));
+  });
+}
+</script>
+</body>
+</html>
