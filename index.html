@@ -545,7 +545,10 @@
 
 
   <div class="card" id="alerts-card">
-    <div class="card-title">🔔 تنبيهات المشرفين</div>
+    <div class="card-title" style="justify-content:space-between">
+      <span>🔔 تنبيهات المشرفين</span>
+      <button class="btn btn-sm" style="width:auto;background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="dismissAlerts()" id="dismiss-alerts-btn">✖ مسح التنبيهات</button>
+    </div>
     <div id="alerts-list"></div>
   </div>
   <div class="card">
@@ -1005,8 +1008,19 @@ function studentAttendedOn(studentId, isoDate) {
   );
 }
 
+let dismissedAlerts = JSON.parse(localStorage.getItem('dismissedAlerts') || '[]');
+let alertsDismissedUntil = parseInt(localStorage.getItem('alertsDismissedUntil') || '0');
+
+function dismissAlerts() {
+  // تخزين وقت المسح — التنبيهات تختفي لمدة 24 ساعة
+  alertsDismissedUntil = Date.now() + 24 * 60 * 60 * 1000;
+  localStorage.setItem('alertsDismissedUntil', String(alertsDismissedUntil));
+  renderAlerts();
+}
+
 function renderAlerts() {
   const el = document.getElementById('alerts-list');
+  const dismissBtn = document.getElementById('dismiss-alerts-btn');
   if (!el) return;
   const clubDays = getClubDays();
   const alerts = [];
@@ -1020,6 +1034,15 @@ function renderAlerts() {
       }
     });
   }
+
+  // إذا كانت التنبيهات ممسوحة ولم تنته المدة
+  if (Date.now() < alertsDismissedUntil && alerts.length) {
+    el.innerHTML = `<div class="alert-item" style="background:#f5f5f5;border-color:#ddd"><span class="alert-icon">🔕</span><div class="alert-text" style="color:#888">تم مسح التنبيهات — ستظهر مجدداً بعد 24 ساعة<br><button onclick="alertsDismissedUntil=0;localStorage.removeItem('alertsDismissedUntil');renderAlerts()" style="background:none;border:none;color:var(--green-mid);font-weight:700;font-family:inherit;cursor:pointer;padding:0;font-size:0.8rem;margin-top:4px">↺ إظهار التنبيهات الآن</button></div></div>`;
+    if (dismissBtn) dismissBtn.style.display = 'none';
+    return;
+  }
+
+  if (dismissBtn) dismissBtn.style.display = alerts.length ? '' : 'none';
 
   el.innerHTML = alerts.length
     ? alerts.join('')
@@ -1434,7 +1457,7 @@ function getAdminCode() { return atob(ADMIN_CODE_B64); }
 const SITE_BASE_URL = 'https://thekingwise07-sketch.github.io/Nadi-Sa3ed/';
 
 function copyAdminLink() {
-  const link = `${SITE_BASE_URL}#admin=${getAdminCode()}`;
+  const link = `${SITE_BASE_URL}#live`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link)
       .then(() => toast('✅ تم نسخ رابط المشرفين'))
@@ -1885,7 +1908,8 @@ function logEntry(icon, text, meta) {
   const now = new Date();
   const time = now.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
   const isoDate = now.toISOString().slice(0,10); // YYYY-MM-DD لاستخدامه بالفلترة
-  state.log.unshift({ id: Date.now() + Math.random(), icon, text, time, date: now.getTime(), isoDate, meta: meta || null });
+  const adminName = sessionStorage.getItem('nadyAdmin') || '';
+  state.log.unshift({ id: Date.now() + Math.random(), icon, text, time, date: now.getTime(), isoDate, meta: meta || null, adminName });
   if (state.log.length > 200) state.log.pop();
 }
 
@@ -2376,18 +2400,19 @@ function renderLog() {
     return;
   }
 
-  el.innerHTML = filtered.slice(0, 80).map(l =>
-    `<div class="log-item" style="justify-content:space-between">
+  el.innerHTML = filtered.slice(0, 80).map(l => {
+    const adminTag = l.adminName ? `<span style="background:#e8f5ee;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
+    return `<div class="log-item" style="justify-content:space-between">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div class="log-icon">${l.icon}</div>
         <div>
           <div>${l.text}</div>
-          <div class="log-time">${l.time}</div>
+          <div class="log-time">${adminTag}${l.time}</div>
         </div>
       </div>
       <button class="btn btn-sm btn-danger" style="width:auto;flex-shrink:0" onclick="removeLogEntry(${l.id})">🗑</button>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 }
 
 function resetLogFilters() {
