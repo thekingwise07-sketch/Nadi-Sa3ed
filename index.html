@@ -2,6 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+// أول كود ينفذ — قبل أي شيء آخر في الصفحة
+// إذا لم يكن هناك hash للمشرف، نُثبّت الـ hash على #live فوراً
+// هذا يضمن أن detectPublicView() ستقرأ #live وتدخل وضع الأهالي
+(function() {
+  var h = window.location.hash || '';
+  if (!h.startsWith('#admin=') && !h.startsWith('#view=')) {
+    // ليس رابط مشرف → اجعله #live دائماً
+    history.replaceState(null, '', window.location.pathname + '#live');
+    // الآن location.hash = '#live' لكل الكود اللاحق
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام النقاط – النادي الصيفي</title>
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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">
@@ -849,18 +862,6 @@
 <div id="toast"></div>
 
 <script>
-// ===================== حماية: إعادة توجيه فورية إذا لم يكن هناك hash =====================
-// هذا أول كود ينفذ في الصفحة — قبل أي شيء آخر
-// Chrome أحياناً يحذف #live عند الإضافة للشاشة الرئيسية، لذا نُعيد التوجيه فوراً
-(function() {
-  var h = location.hash;
-  // إذا لا يوجد hash أو كان غير معروف (ليس #live ولا #admin= ولا #view=)
-  if (!h || (h !== '#live' && !h.startsWith('#admin=') && !h.startsWith('#view='))) {
-    // أعد توجيه الرابط لـ #live فوراً (بدون إعادة تحميل)
-    history.replaceState(null, '', location.pathname + location.search + '#live');
-  }
-})();
-
 // ===================== تسجيل الدخول =====================
 const ADMINS = {
   'رائد':        'Raed@2026',
