@@ -2,7 +2,7 @@
   "name": "نظام النقاط – النادي الصيفي",
   "short_name": "نقاط النادي",
   "description": "نظام النقاط - النادي الصيفي - مسجد سعيد أرحيل",
-  "start_url": "./index.html",
+  "start_url": "./index.html#live",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -498,8 +498,16 @@
       <label>كلمة السر</label>
       <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
-    <button class="login-btn" onclick="doLogin()">🔐 دخول</button>
+    <button class="login-btn" onclick="doLogin()">🔐 دخول المشرفين</button>
     <div class="login-error" id="login-error">اسم المشرف أو كلمة السر غير صحيحة</div>
+
+    <div style="margin-top:18px;border-top:1px solid #e0ddd6;padding-top:14px">
+      <p style="font-size:0.78rem;color:var(--gray-text);margin-bottom:10px">
+        🏠 هل أنت من أهالي المشتركين؟
+      </p>
+      <button onclick="goToPublicView()" style="width:100%;padding:11px;border-radius:12px;border:2px solid var(--green-mid);background:#e8f5ee;color:var(--green-deep);font-family:'Tajawal',sans-serif;font-size:0.95rem;font-weight:800;cursor:pointer;">👨‍👩‍👧 عرض النقاط للأهالي</button>
+    </div>
+    <div class="login-footer">هذه الصفحة للمشرفين فقط — الأهالي يستخدمون رابط العرض المباشر</div>
   </div>
 </div>
 
@@ -871,13 +879,43 @@ function loginAsPublic() {
   document.getElementById('login-screen').style.display = 'none';
 }
 
+// زر "عرض النقاط للأهالي" في شاشة تسجيل الدخول
+// يوجّه المستخدم لوضع الأهالي بدلاً من إبقائه في شاشة المشرف
+function goToPublicView() {
+  // نُعيد توجيه الرابط لـ #live حتى يُحفظ صحيحاً في المستقبل
+  history.replaceState(null, '', location.pathname + '#live');
+  document.getElementById('login-screen').style.display = 'none';
+  isLiveView = true;
+  isPublicView = true;
+  applyPublicViewRestrictions();
+  render();
+}
+
 // إذا كان وضع العرض الحي أو اللقطة، تجاوز شاشة الدخول مباشرة
 (function() {
   const hash = location.hash || '';
-  if (hash === '#live' || hash.startsWith('#view=') || hash.startsWith('#admin=')) {
+
+  // ===== إصلاح الثغرة الأمنية =====
+  // إذا فُتح التطبيق بدون hash (مثل عند الإضافة للشاشة الرئيسية من Chrome)،
+  // أو بـ #live، نُعامله كوضع أهالي مباشرةً لمنع وصولهم لشاشة تسجيل الدخول.
+  // شاشة المشرف تتطلب دائماً إدخال اسم وكلمة سر — لا يوجد bypass بدون ذلك.
+  if (hash === '' || hash === '#live' || hash.startsWith('#view=')) {
     document.getElementById('login-screen').style.display = 'none';
+    // سنطبّق وضع الأهالي بعد تحميل الصفحة (يتم في detectPublicView)
+    return;
   }
-  // إذا كانت الجلسة محفوظة
+
+  // رابط المشرف الخاص: #admin=XXXX — نتحقق منه ونخفي شاشة الدخول فقط إذا كان صحيحاً
+  if (hash.startsWith('#admin=')) {
+    const code = hash.replace('#admin=', '');
+    if (code === getAdminCode()) {
+      document.getElementById('login-screen').style.display = 'none';
+    }
+    // إذا كان الرمز خاطئاً: نبقي شاشة الدخول ظاهرة (لا نخفيها)
+    return;
+  }
+
+  // إذا كانت الجلسة محفوظة من تسجيل دخول سابق
   const saved = sessionStorage.getItem('nadyAdmin');
   if (saved && ADMINS[saved]) {
     document.getElementById('login-screen').style.display = 'none';
@@ -1494,28 +1532,34 @@ let isLiveView = false; // وضع العرض الحي من Firebase
 function detectPublicView() {
   const hash = location.hash || '';
 
-  // رابط المشرف
+  // ===== إصلاح الثغرة: بدون hash = وضع أهالي =====
+  // عند الإضافة للشاشة الرئيسية من Chrome أو فتح الرابط بدون hash،
+  // يُعامل التطبيق كوضع أهالي (live view) تلقائياً — لا يُعرض شاشة تسجيل الدخول.
+  if (hash === '' || hash === '#live') {
+    isLiveView = true;
+    return true;
+  }
+
+  // رابط المشرف الخاص: يتطلب الرمز الصحيح
   const adminMatch = hash.match(/^#admin=(.+)$/);
   if (adminMatch) {
     if (adminMatch[1] === getAdminCode()) {
-      // كلمة سر صحيحة — وضع مشرف كامل (مثل الوضع العادي + Firebase)
+      // رمز صحيح — وضع مشرف كامل
       return false;
     } else {
-      // كلمة سر خاطئة — نعامله كعرض عادي
+      // رمز خاطئ — وضع أهالي (احتياطي آمن)
       isLiveView = true;
       return true;
     }
   }
 
-  // وضع العرض الحي
-  if (hash === '#live') {
+  // وضع اللقطة القديم
+  const match = hash.match(/^#view=(.+)$/);
+  if (!match) {
+    // أي hash غير معروف → وضع أهالي (احتياطي آمن)
     isLiveView = true;
     return true;
   }
-
-  // وضع اللقطة القديم
-  const match = hash.match(/^#view=(.+)$/);
-  if (!match) return false;
   try {
     publicSnapshot = decodeSnapshot(match[1]);
     return true;
