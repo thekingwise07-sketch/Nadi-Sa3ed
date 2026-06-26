@@ -430,9 +430,76 @@
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
     100% { transform: translateY(110vh) rotate(540deg); opacity: 0.9; }
   }
+
+  /* === شاشة تسجيل الدخول === */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .login-box {
+    background: var(--cream); border-radius: 24px;
+    padding: 32px 24px; width: 100%; max-width: 360px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  .login-logo {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; margin: 0 auto 16px;
+    box-shadow: 0 8px 24px rgba(26,74,46,0.3);
+  }
+  .login-title { font-size: 1.3rem; font-weight: 900; color: var(--green-deep); margin-bottom: 4px; }
+  .login-sub { font-size: 0.82rem; color: var(--gray-text); margin-bottom: 24px; }
+  .login-field { margin-bottom: 14px; text-align: right; }
+  .login-field label { font-size: 0.8rem; font-weight: 700; color: var(--green-deep); display: block; margin-bottom: 5px; }
+  .login-field input {
+    width: 100%; padding: 11px 14px; border: 2px solid #e0ddd6;
+    border-radius: 12px; font-family: 'Tajawal', sans-serif;
+    font-size: 0.92rem; background: var(--gray-soft);
+    color: var(--green-deep); margin-bottom: 0; transition: border 0.2s;
+  }
+  .login-field input:focus { outline: none; border-color: var(--green-mid); background: white; }
+  .login-btn {
+    width: 100%; padding: 13px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
+    color: white; font-family: 'Tajawal', sans-serif;
+    font-size: 1rem; font-weight: 800; cursor: pointer;
+    margin-top: 6px; transition: opacity 0.2s;
+  }
+  .login-btn:hover { opacity: 0.9; }
+  .login-error {
+    background: #fdecea; border: 1px solid #ef9a9a; border-radius: 10px;
+    padding: 10px 14px; font-size: 0.82rem; color: #c62828;
+    margin-top: 12px; display: none; font-weight: 700;
+  }
+  .login-footer { font-size: 0.72rem; color: var(--gray-text); margin-top: 18px; }
 </style>
 </head>
 <body>
+
+<!-- ===================== شاشة تسجيل الدخول ===================== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🏕️</div>
+    <div class="login-title">النادي الصيفي</div>
+    <div class="login-sub">مسجد سعيد أرحيل — نظام النقاط</div>
+
+    <div class="login-field">
+      <label>اسم المشرف</label>
+      <input type="text" id="login-name" placeholder="أدخل اسمك" autocomplete="off">
+    </div>
+    <div class="login-field">
+      <label>كلمة السر</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">🔐 دخول</button>
+    <div class="login-error" id="login-error">اسم المشرف أو كلمة السر غير صحيحة</div>
+    <div class="login-footer">للدخول كأهل/مشاهد فقط: <a href="#live" style="color:var(--green-mid);font-weight:700" onclick="loginAsPublic()">اضغط هنا</a></div>
+  </div>
+</div>
 
 <header>
   <div style="display:flex;align-items:center;gap:12px">
@@ -449,7 +516,6 @@
       📥 تحميل نسخة
       <input type="file" accept=".json" onchange="importData(event)" style="display:none">
     </label>
-    <button class="btn-header" style="background:#fff3c4;color:#7a5b00" onclick="copyShareLink()">🔗 نسخ رابط للأهالي</button>
   </div>
 </header>
 
@@ -476,17 +542,7 @@
     </div>
   </div>
 
-  <div class="card" id="share-links-card">
-    <div class="card-title">🔗 رابط مشاركة النقاط مع الأهالي</div>
-    <p style="font-size:0.78rem;color:var(--gray-text);line-height:1.6;margin-bottom:8px">
-      رابط <b>حي ودائم</b> — أي شخص يفتحه يشاهد النقاط الحالية وتتحدث عنده تلقائياً فور أي تغيير، بدون إمكانية تعديل.
-    </p>
-    <button class="btn btn-gold" onclick="copyShareLink()">🔗 نسخ رابط الأهالي</button>
-    <button class="btn" style="background:#e8f5ee;color:var(--green-deep);border:1px solid var(--green-mid);margin-top:6px" onclick="copyAdminLink()">🔐 نسخ رابط المشرفين</button>
-    <div class="share-box" id="share-box" style="display:none">
-      <input type="text" id="share-link-text" readonly onclick="this.select()">
-    </div>
-  </div>
+
 
   <div class="card" id="alerts-card">
     <div class="card-title">🔔 تنبيهات المشرفين</div>
@@ -780,6 +836,49 @@
 <div id="toast"></div>
 
 <script>
+// ===================== تسجيل الدخول =====================
+const ADMINS = {
+  'رائد':        'Raed@2026',
+  'يزن':         'Yazan@2026',
+  'حذيفة':       'Huzaifa@2026',
+  'عبدالرحمن':   'AbdulR@2026'
+};
+
+function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  if (ADMINS[name] && ADMINS[name] === pass) {
+    document.getElementById('login-screen').style.display = 'none';
+    sessionStorage.setItem('nadyAdmin', name);
+    // تحديث اسم المشرف في الهيدر
+    const sub = document.querySelector('header p');
+    if (sub) sub.textContent = `مرحباً ${name} — النادي الصيفي`;
+    errEl.style.display = 'none';
+  } else {
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+function loginAsPublic() {
+  document.getElementById('login-screen').style.display = 'none';
+}
+
+// إذا كان وضع العرض الحي أو اللقطة، تجاوز شاشة الدخول مباشرة
+(function() {
+  const hash = location.hash || '';
+  if (hash === '#live' || hash.startsWith('#view=') || hash.startsWith('#admin=')) {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+  // إذا كانت الجلسة محفوظة
+  const saved = sessionStorage.getItem('nadyAdmin');
+  if (saved && ADMINS[saved]) {
+    document.getElementById('login-screen').style.display = 'none';
+  }
+})();
+
 // ===================== STATE =====================
 let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
   students: [],   // {id, name, teamId, points, weekPoints, weekStartPoints, createdAt}
