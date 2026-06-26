@@ -849,6 +849,18 @@
 <div id="toast"></div>
 
 <script>
+// ===================== حماية: إعادة توجيه فورية إذا لم يكن هناك hash =====================
+// هذا أول كود ينفذ في الصفحة — قبل أي شيء آخر
+// Chrome أحياناً يحذف #live عند الإضافة للشاشة الرئيسية، لذا نُعيد التوجيه فوراً
+(function() {
+  var h = location.hash;
+  // إذا لا يوجد hash أو كان غير معروف (ليس #live ولا #admin= ولا #view=)
+  if (!h || (h !== '#live' && !h.startsWith('#admin=') && !h.startsWith('#view='))) {
+    // أعد توجيه الرابط لـ #live فوراً (بدون إعادة تحميل)
+    history.replaceState(null, '', location.pathname + location.search + '#live');
+  }
+})();
+
 // ===================== تسجيل الدخول =====================
 const ADMINS = {
   'رائد':        'Raed@2026',
