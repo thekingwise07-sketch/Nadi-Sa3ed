@@ -1,6 +1,7 @@
-const CACHE_NAME = 'nady-v1';
+const CACHE_NAME = 'nady-v2';
 const ASSETS = [
   './index.html',
+  './admin.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap'
 ];
@@ -13,7 +14,7 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-// Activate: remove old caches
+// Activate: remove old caches (v1 وأي نسخة قديمة)
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -23,9 +24,27 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: serve from cache, fallback to network
+// Fetch: network first للـ HTML حتى يحصل الأهالي دائماً على آخر نسخة
+// cache fallback للباقي
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
+  const url = new URL(e.request.url);
+  const isHTML = url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+
+  if (isHTML) {
+    // HTML: اطلب من الشبكة أولاً، وإذا فشل استخدم الكاش
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // باقي الملفات: كاش أولاً
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request))
+    );
+  }
 });
