@@ -2793,7 +2793,7 @@ function renderMatchesLists() {
   const teamColorOf = id => { const t = state.teams.find(t => t.id == id); return t ? (t.color || '#4caf7d') : '#999'; };
 
   upcomingEl.innerHTML = upcoming.length ? upcoming.map(m => `
-    <div class="log-item" style="justify-content:space-between;cursor:pointer" onclick="editMatch(${m.id})">
+    <div class="log-item" style="justify-content:space-between">
       <div>
         <div style="font-weight:700">
           <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
@@ -2802,16 +2802,19 @@ function renderMatchesLists() {
         </div>
         <div class="log-time">${m.date}</div>
       </div>
-      <button class="btn btn-sm btn-danger" style="width:auto" onclick="event.stopPropagation();deleteMatch(${m.id})">🗑</button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editMatch(${m.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
+      </div>
     </div>
   `).join('') : '<div class="empty" style="padding:16px"><p>لا توجد مباريات قادمة</p></div>';
 
   playedEl.innerHTML = played.length ? played.map(m => {
     const scorersText = m.scorers.length
-      ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `<span class="clickable-name" onclick="event.stopPropagation();openStudentModal(${s.id})">${s.name}</span> (${sc.goals})` : ''; }).filter(Boolean).join('، ')
+      ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `<span class="clickable-name" onclick="openStudentModal(${s.id})">${s.name}</span> (${sc.goals})` : ''; }).filter(Boolean).join('، ')
       : '';
     return `
-    <div class="log-item" style="justify-content:space-between;cursor:pointer" onclick="editMatch(${m.id})">
+    <div class="log-item" style="justify-content:space-between">
       <div>
         <div style="font-weight:700">
           <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
@@ -2820,7 +2823,10 @@ function renderMatchesLists() {
         </div>
         <div class="log-time">${m.date}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
       </div>
-      <button class="btn btn-sm btn-danger" style="width:auto" onclick="event.stopPropagation();deleteMatch(${m.id})">🗑</button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editMatch(${m.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
+      </div>
     </div>`;
   }).join('') : '<div class="empty" style="padding:16px"><p>لا توجد نتائج مباريات سابقة</p></div>';
 }
