@@ -579,6 +579,15 @@
     <button class="btn btn-gold" style="margin-top:10px" onclick="startNewWeek()">🔄 بدء أسبوع جديد (أرشفة بدون فقد بيانات)</button>
   </div>
 
+  <!-- تصفير الحضور (إعادة تصنيف سجلات الحضور القديمة) -->
+  <div class="card">
+    <div class="card-title">🔄 تصفير الحضور</div>
+    <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+      يحوّل كل سجلات "حضور وانتظام" القديمة إلى فئة "مشاركة في درس أو نشاط" — نقاط الطلاب الكلية تبقى محفوظة بدون أي تغيير، وفقط عداد مرات الحضور (للشارات والتنبيهات) يرجع للصفر للجميع.
+    </p>
+    <button class="btn btn-danger" onclick="resetAttendanceCounts()">🔄 تصفير الحضور للجميع</button>
+  </div>
+
   <!-- Top 3 -->
   <div class="card">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
@@ -608,8 +617,8 @@
       <button class="cat-btn selected" onclick="selectCat(this,'حضور وانتظام')">
         <span class="cat-icon">📅</span>حضور وانتظام
       </button>
-      <button class="cat-btn" onclick="selectCat(this,'مشاركة في نشاط')">
-        <span class="cat-icon">🎯</span>مشاركة في نشاط
+      <button class="cat-btn" onclick="selectCat(this,'مشاركة في درس أو نشاط')">
+        <span class="cat-icon">🎯</span>مشاركة في درس أو نشاط
       </button>
       <button class="cat-btn" onclick="selectCat(this,'حفظ قرآن / أذكار')">
         <span class="cat-icon">📖</span>حفظ قرآن / أذكار
@@ -660,7 +669,7 @@
     <div class="section-label">فئة النشاط</div>
     <div class="cat-grid" id="bulk-cat-grid">
       <button class="cat-btn selected" onclick="selectBulkCat(this,'حضور وانتظام')"><span class="cat-icon">📅</span>حضور وانتظام</button>
-      <button class="cat-btn" onclick="selectBulkCat(this,'مشاركة في نشاط')"><span class="cat-icon">🎯</span>مشاركة في نشاط</button>
+      <button class="cat-btn" onclick="selectBulkCat(this,'مشاركة في درس أو نشاط')"><span class="cat-icon">🎯</span>مشاركة في درس أو نشاط</button>
       <button class="cat-btn" onclick="selectBulkCat(this,'حفظ قرآن / أذكار')"><span class="cat-icon">📖</span>حفظ قرآن / أذكار</button>
       <button class="cat-btn" onclick="selectBulkCat(this,'أخلاق وسلوك')"><span class="cat-icon">🌸</span>أخلاق وسلوك</button>
       <button class="cat-btn" onclick="selectBulkCat(this,'تميّز ومبادرة')"><span class="cat-icon">💡</span>تميّز ومبادرة</button>
@@ -1979,6 +1988,28 @@ async function startNewWeek() {
   logEntry('📅', `بدأ أسبوع جديد: ${snapshot.label}`);
   save(); render();
   toast('✅ بدأ الأسبوع الجديد، والنقاط الكلية محفوظة بالكامل');
+}
+
+// تصفير عداد الحضور: يحوّل كل سجلات "حضور وانتظام" بالسجل إلى فئة "مشاركة في درس أو نشاط"
+// نقاط الطلاب الكلية لا تتغيّر أبداً — فقط تصنيف السجل يتغيّر، فيرجع عداد الحضور (والشارات والتنبيهات المعتمدة عليه) للصفر تلقائياً
+async function resetAttendanceCounts() {
+  const affected = state.log.filter(l =>
+    l.meta && l.meta.kind === 'student' && l.meta.change > 0 && l.text.includes('حضور وانتظام')
+  ).length;
+
+  if (!affected) { toast('لا توجد سجلات حضور لتصفيرها'); return; }
+
+  if (!await customConfirm(`سيتم تحويل ${affected} سجل "حضور وانتظام" إلى "مشاركة في درس أو نشاط".\n\nنقاط الطلاب الكلية لن تتغيّر، وفقط عداد الحضور سيرجع للصفر.`, '🔄')) return;
+
+  state.log.forEach(l => {
+    if (l.meta && l.meta.kind === 'student' && l.meta.change > 0 && l.text.includes('حضور وانتظام')) {
+      l.text = l.text.replace('حضور وانتظام', 'مشاركة في درس أو نشاط');
+    }
+  });
+
+  logEntry('🔄', `تم تصفير عداد الحضور لجميع الطلاب (إعادة تصنيف ${affected} سجل)`);
+  save(); render();
+  toast('✅ تم تصفير الحضور — النقاط الكلية محفوظة بالكامل');
 }
 
 // حذف سطر واحد من السجل + التراجع عن أثره على النقاط (إن وُجد)
