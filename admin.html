@@ -334,6 +334,17 @@
     text-decoration: line-through;
   }
 
+  /* === أزرار اختيار فرق دوري الرجال (البطولة المنظَّمة) === */
+  .tournament-team-btn {
+    padding: 7px 12px; border-radius: 20px; border: 2px solid #ddd;
+    background: var(--gray-soft); font-family: 'Tajawal', sans-serif;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    color: var(--green-deep); transition: all 0.15s;
+  }
+  .tournament-team-btn.selected {
+    background: var(--green-mid); color: white; border-color: var(--green-mid);
+  }
+
   /* === أنيميشن نبضة عند تغيّر النقاط (live view) === */
   @keyframes ptsPulse {
     0%   { transform: scale(1);    color: var(--green-mid); }
@@ -773,6 +784,14 @@
 <!-- ===================== LEAGUE (دوري الرجال) ===================== -->
 <div id="page-league" class="page">
 
+  <!-- ===== بطولة دوري الرجال (موسم 4 أسابيع) ===== -->
+  <div class="card" id="tournament-card">
+    <div class="card-title">🏆 دوري الرجال</div>
+    <div id="tournament-area"></div>
+  </div>
+
+  <div class="divider"></div>
+
   <div class="card">
     <div class="card-title">🏆 فريق الأسبوع</div>
     <div id="league-team-of-week"></div>
@@ -802,6 +821,7 @@
     </div>
     <div id="match-edit-banner" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#5d4900;font-weight:700;margin-bottom:10px">✏️ أنت الآن تعدّل على مباراة محفوظة</div>
     <input type="hidden" id="match-edit-id" value="">
+    <input type="hidden" id="match-edit-tournament" value="">
     <div class="section-label">الفريق الأول</div>
     <select id="match-team-a"><option value="">— اختر الفريق —</option></select>
     <div class="section-label">الفريق الثاني</div>
@@ -922,7 +942,8 @@ let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
   currentWeekStart: null, // ISO date لبداية الأسبوع الحالي
   league: {
     matches: [],     // {id, teamAId, teamBId, scoreA, scoreB, date, status:'played'|'scheduled', scorers:[{studentId, goals, teamId}]}
-    playerOfWeek: {} // { 'YYYY-Www': studentId }
+    playerOfWeek: {}, // { 'YYYY-Www': studentId }
+    tournament: null // بطولة "دوري الرجال" المنظَّمة على 4 أسابيع: {id, teamIds, startDate, matches:[...], active}
   }
 };
 
@@ -930,9 +951,10 @@ let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
 function ensureFields() {
   if (!state.weeks) state.weeks = [];
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
-  if (!state.league) state.league = { matches: [], playerOfWeek: {} };
+  if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
+  if (state.league.tournament === undefined) state.league.tournament = null;
   state.students.forEach(s => {
     if (s.weekStartPoints === undefined) s.weekStartPoints = s.points;
     if (!s.createdAt) s.createdAt = Date.now();
@@ -1536,7 +1558,8 @@ function applyPublicSnapshotToState(snapshot) {
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
     league: {
       matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
-      playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {}
+      playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
+      tournament: (src.league && src.league.tournament) || null
     }
   };
   ensureFields();
@@ -2595,6 +2618,7 @@ document.addEventListener('click', (e) => {
 
 function saveMatch() {
   const editId = document.getElementById('match-edit-id').value;
+  const isTournamentEdit = document.getElementById('match-edit-tournament').value === '1';
   const teamAId = document.getElementById('match-team-a').value;
   const teamBId = document.getElementById('match-team-b').value;
   const date = document.getElementById('match-date').value || new Date().toISOString().slice(0,10);
@@ -2626,7 +2650,20 @@ function saveMatch() {
     });
   }
 
-  if (editId) {
+  if (editId && isTournamentEdit) {
+    // ===== وضع التعديل: مباراة من جدول دوري الرجال (البطولة المنظَّمة) =====
+    const t = state.league.tournament;
+    const match = t ? t.matches.find(m => String(m.id) === String(editId)) : null;
+    if (!match) { toast('⚠️ تعذّر إيجاد مباراة الدوري'); return; }
+    Object.assign(match, matchData);
+
+    if (status === 'played') {
+      logEntry('✏️', `تعديل نتيجة دوري الرجال: ${teamA.name} ${matchData.scoreA} - ${matchData.scoreB} ${teamB.name}`);
+    } else {
+      logEntry('✏️', `تعديل مباراة دوري الرجال: ${teamA.name} ضد ${teamB.name} – ${date}`);
+    }
+    toast('✅ تم تعديل مباراة الدوري');
+  } else if (editId) {
     // ===== وضع التعديل: نحدّث مباراة موجودة بدل إنشاء جديدة =====
     const match = state.league.matches.find(m => String(m.id) === String(editId));
     if (!match) { toast('⚠️ تعذّر إيجاد المباراة'); return; }
@@ -2660,6 +2697,7 @@ function editMatch(id) {
   if (!match) return;
 
   document.getElementById('match-edit-id').value = match.id;
+  document.getElementById('match-edit-tournament').value = '';
   document.getElementById('match-team-a').value = match.teamAId;
   document.getElementById('match-team-b').value = match.teamBId;
   document.getElementById('match-date').value = match.date;
@@ -2674,6 +2712,7 @@ function editMatch(id) {
   (match.scorers || []).forEach(sc => addScorerRow(sc.studentId, sc.goals));
 
   document.getElementById('match-form-title').querySelector('span').textContent = '✏️ تعديل مباراة محفوظة';
+  document.getElementById('match-edit-banner').textContent = '✏️ أنت الآن تعدّل على مباراة محفوظة';
   document.getElementById('match-edit-banner').style.display = 'block';
   document.getElementById('match-cancel-edit-btn').style.display = '';
   document.getElementById('match-save-btn').textContent = '💾 حفظ التعديل';
@@ -2689,6 +2728,7 @@ function cancelEditMatch() {
 // إعادة الفورم لوضعه الافتراضي (إضافة مباراة جديدة) بعد الحفظ أو الإلغاء
 function resetMatchForm() {
   document.getElementById('match-edit-id').value = '';
+  document.getElementById('match-edit-tournament').value = '';
   document.getElementById('match-team-a').value = '';
   document.getElementById('match-team-b').value = '';
   document.getElementById('match-date').value = new Date().toISOString().slice(0,10);
@@ -2715,9 +2755,11 @@ async function deleteMatch(id) {
 }
 
 // حساب نقاط الدوري لكل فريق (3 فوز / 1 تعادل / 0 خسارة) ضمن مباريات أسبوع معيّن أو كل الأوقات
-function computeStandings(matches) {
+// teamIds اختياري: إن مُرّر، يُحسب الترتيب لهذه الفرق فقط (يُستخدم لبطولة دوري الرجال المنظَّمة)
+function computeStandings(matches, teamIds) {
   const table = {}; // teamId -> {points, gf, ga, played}
-  state.teams.forEach(t => table[t.id] = { teamId: t.id, points: 0, gf: 0, ga: 0, played: 0, wins: 0 });
+  const teamsToUse = teamIds ? state.teams.filter(t => teamIds.some(id => String(id) === String(t.id))) : state.teams;
+  teamsToUse.forEach(t => table[t.id] = { teamId: t.id, points: 0, gf: 0, ga: 0, played: 0, wins: 0 });
 
   matches.filter(m => m.status === 'played').forEach(m => {
     const a = table[m.teamAId], b = table[m.teamBId];
@@ -2862,12 +2904,234 @@ function renderMatchesLists() {
   }).join('') : '<div class="empty" style="padding:16px"><p>لا توجد نتائج مباريات سابقة</p></div>';
 }
 
+// ===================== بطولة دوري الرجال (موسم منظَّم على 4 أسابيع) =====================
+
+// توليد جدول "الكل ضد الكل" (round-robin) لقائمة فرق، وتوزيعه على 4 أسابيع بالتساوي
+function generateRoundRobinSchedule(teamIds, startDateISO) {
+  let ids = teamIds.slice();
+  const byeId = null;
+  if (ids.length % 2 !== 0) ids.push(byeId); // فريق وهمي "استراحة" لو عدد الفرق فردي
+
+  const n = ids.length;
+  const roundsCount = n - 1; // عدد الجولات اللازمة لملاقاة كل الفرق بعضها مرة واحدة
+  const half = n / 2;
+  const rounds = [];
+  let arr = ids.slice();
+
+  for (let r = 0; r < roundsCount; r++) {
+    const roundPairs = [];
+    for (let i = 0; i < half; i++) {
+      const a = arr[i], b = arr[n - 1 - i];
+      if (a !== byeId && b !== byeId) roundPairs.push([a, b]);
+    }
+    rounds.push(roundPairs);
+    // تدوير الفرق (الأول يبقى ثابتاً، الباقي يدور) — خوارزمية round-robin القياسية
+    arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
+  }
+
+  // توزيع الجولات على 4 أسابيع بأقرب تساوٍ ممكن (كل جولة فيها كل الفرق تلعب بدون تعارض)
+  // لو عدد الجولات أكثر من 4، توضع جولات إضافية بنفس الأسبوع لكن بتاريخ مختلف داخله (لا تعارض لأي فريق بنفس اليوم)
+  const weeksCount = 4;
+  const start = new Date(startDateISO || new Date().toISOString().slice(0,10));
+  const matches = [];
+
+  const roundsPerWeek = Array(weeksCount).fill(0);
+  for (let i = 0; i < rounds.length; i++) roundsPerWeek[i % weeksCount]++;
+  const roundToWeek = [];
+  let ri = 0;
+  for (let w = 0; w < weeksCount; w++) {
+    for (let k = 0; k < roundsPerWeek[w]; k++) { roundToWeek[ri] = w; ri++; }
+  }
+
+  rounds.forEach((pairs, roundIdx) => {
+    const weekIdx = roundToWeek[roundIdx];
+    let roundInWeek = 0;
+    for (let i = 0; i < roundIdx; i++) if (roundToWeek[i] === weekIdx) roundInWeek++;
+    const matchDate = new Date(start);
+    matchDate.setDate(start.getDate() + weekIdx * 7 + roundInWeek * 2); // فاصل يومين بين جولات نفس الأسبوع لو لزم
+    const dateISO = matchDate.toISOString().slice(0,10);
+    pairs.forEach(([a, b]) => {
+      matches.push({
+        id: Date.now() + Math.random(),
+        teamAId: a, teamBId: b, date: dateISO, status: 'scheduled',
+        scoreA: 0, scoreB: 0, scorers: [], week: weekIdx + 1, tournament: true
+      });
+    });
+  });
+
+  return matches;
+}
+
+function renderTournamentTeamPicker() {
+  return state.teams.map(t => `
+    <button class="tournament-team-btn" data-team-id="${t.id}" onclick="toggleTournamentTeam(${t.id})">
+      <span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}
+    </button>
+  `).join('');
+}
+
+let tournamentSelectedTeams = new Set();
+function toggleTournamentTeam(id) {
+  if (tournamentSelectedTeams.has(id)) tournamentSelectedTeams.delete(id);
+  else tournamentSelectedTeams.add(id);
+  document.querySelectorAll('.tournament-team-btn').forEach(btn => {
+    const tid = parseInt(btn.dataset.teamId);
+    btn.classList.toggle('selected', tournamentSelectedTeams.has(tid));
+  });
+}
+
+async function createTournament() {
+  const teamIds = Array.from(tournamentSelectedTeams);
+  if (teamIds.length < 2) { toast('⚠️ اختر فريقين على الأقل'); return; }
+  const startDate = document.getElementById('tournament-start-date')?.value || new Date().toISOString().slice(0,10);
+
+  if (!await customConfirm(`بدء دوري الرجال بـ ${teamIds.length} فرق على مدار 4 أسابيع ابتداءً من ${startDate}؟\n\nسيتم توليد جدول المباريات تلقائياً.`, '🏆')) return;
+
+  const matches = generateRoundRobinSchedule(teamIds, startDate);
+  state.league.tournament = {
+    id: Date.now(),
+    teamIds, startDate,
+    matches,
+    active: true
+  };
+  tournamentSelectedTeams = new Set();
+  logEntry('🏆', `بدأ دوري الرجال بمشاركة ${teamIds.length} فرق — جدول 4 أسابيع`);
+  save(); render();
+  toast('✅ تم توليد جدول دوري الرجال');
+}
+
+async function endTournament() {
+  if (!await customConfirm('إنهاء دوري الرجال الحالي؟\n\nستبقى نتائجه محفوظة بالسجل، ويمكنك بدء دوري جديد بعد ذلك.', '🏁')) return;
+  state.league.tournament.active = false;
+  logEntry('🏁', 'تم إنهاء دوري الرجال الحالي');
+  save(); render();
+  toast('🏁 تم إنهاء الدوري');
+}
+
+async function deleteTournamentMatch(id) {
+  if (!await customConfirm('حذف هذه المباراة من جدول الدوري؟', '🗑️')) return;
+  state.league.tournament.matches = state.league.tournament.matches.filter(m => String(m.id) !== String(id));
+  save(); render();
+  toast('🗑️ تم حذف المباراة');
+}
+
+// تعبية فورم تسجيل المباراة العادي بمباراة من البطولة (نفس الفورم، مع وسم tournament لإعادة الحفظ بالمكان الصحيح)
+function editTournamentMatch(id) {
+  const t = state.league.tournament;
+  if (!t) return;
+  const match = t.matches.find(m => String(m.id) === String(id));
+  if (!match) return;
+
+  document.getElementById('match-edit-id').value = match.id;
+  document.getElementById('match-edit-tournament').value = '1';
+  document.getElementById('match-team-a').value = match.teamAId;
+  document.getElementById('match-team-b').value = match.teamBId;
+  document.getElementById('match-date').value = match.date;
+  document.getElementById('match-status').value = match.status;
+  toggleMatchScoreFields();
+
+  document.getElementById('match-score-a').value = match.scoreA || 0;
+  document.getElementById('match-score-b').value = match.scoreB || 0;
+
+  document.getElementById('match-scorers-area').innerHTML = '';
+  scorerRowCount = 0;
+  (match.scorers || []).forEach(sc => addScorerRow(sc.studentId, sc.goals));
+
+  document.getElementById('match-form-title').querySelector('span').textContent = '✏️ تعديل مباراة دوري الرجال';
+  document.getElementById('match-edit-banner').style.display = 'block';
+  document.getElementById('match-edit-banner').textContent = '🏆 أنت الآن تعدّل مباراة من جدول دوري الرجال';
+  document.getElementById('match-cancel-edit-btn').style.display = '';
+  document.getElementById('match-save-btn').textContent = '💾 حفظ نتيجة الدوري';
+
+  document.getElementById('match-form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderTournament() {
+  const el = document.getElementById('tournament-area');
+  if (!el) return;
+  const t = state.league.tournament;
+
+  if (!t || !t.active) {
+    el.innerHTML = `
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        اختر الفرق المشاركة، وسيُولَّد جدول مباريات "الكل ضد الكل" تلقائياً ويوزَّع على 4 أسابيع.
+      </p>
+      <div class="section-label">الفرق المشاركة</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${renderTournamentTeamPicker()}</div>
+      <div class="section-label">تاريخ بداية الدوري (الأسبوع الأول)</div>
+      <input type="date" id="tournament-start-date" value="${new Date().toISOString().slice(0,10)}">
+      <button class="btn btn-gold" onclick="createTournament()">🏆 بدء دوري الرجال وتوليد الجدول</button>
+    `;
+    return;
+  }
+
+  const standings = computeStandings(t.matches, t.teamIds);
+  const teamName = id => { const tm = state.teams.find(x => x.id == id); return tm ? tm.name : '— فريق محذوف —'; };
+  const teamColorOf = id => { const tm = state.teams.find(x => x.id == id); return tm ? (tm.color || '#4caf7d') : '#999'; };
+
+  const standingsHTML = standings.map((row, i) => `
+    <div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
+      <div class="rank-badge">${i+1}</div>
+      <div class="rank-name"><span class="team-color-dot" style="background:${teamColorOf(row.teamId)}"></span>${teamName(row.teamId)}<br>
+        <span style="font-size:0.7rem;color:var(--gray-text)">لعب ${row.played} | فوز ${row.wins} | أهداف ${row.gf}-${row.ga}</span>
+      </div>
+      <div class="rank-pts">${row.points}<span class="pts-label"> نقطة</span></div>
+    </div>
+  `).join('');
+
+  // تجميع مباريات البطولة حسب الأسبوع
+  const byWeek = {};
+  t.matches.slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(m => {
+    const w = m.week || 1;
+    if (!byWeek[w]) byWeek[w] = [];
+    byWeek[w].push(m);
+  });
+
+  const matchesHTML = Object.keys(byWeek).sort((a,b) => a - b).map(w => `
+    <div class="section-label" style="margin-top:14px">📅 الأسبوع ${w}</div>
+    ${byWeek[w].map(m => {
+      const scorersText = (m.scorers || []).length
+        ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `${s.name} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
+        : '';
+      const resultText = m.status === 'played'
+        ? `<span style="color:var(--green-mid)"> ${m.scoreA} - ${m.scoreB} </span>`
+        : `<span style="color:var(--gray-text);font-weight:500"> ضد </span>`;
+      return `
+      <div class="log-item" style="justify-content:space-between">
+        <div>
+          <div style="font-weight:700">
+            <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
+            ${resultText}
+            <span class="team-color-dot" style="background:${teamColorOf(m.teamBId)}"></span>${teamName(m.teamBId)}
+          </div>
+          <div class="log-time">${m.date}${m.status === 'scheduled' ? ' | قادمة' : ''}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editTournamentMatch(${m.id})">✏️</button>
+          <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteTournamentMatch(${m.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:0.8rem;color:var(--gray-text);font-weight:700">🏆 دوري نشط — ${t.teamIds.length} فرق</span>
+      <button class="btn btn-sm" style="width:auto;background:#fdecea;color:#c62828;border:2px solid #e57373" onclick="endTournament()">🏁 إنهاء الدوري</button>
+    </div>
+    <div class="section-label">جدول الترتيب</div>
+    ${standingsHTML || '<div class="empty" style="padding:10px"><p>لا توجد نتائج بعد</p></div>'}
+    ${matchesHTML}
+  `;
+}
+
 function renderLeaguePage() {
   if (!document.getElementById('page-league')) return;
   renderTeamOfWeek();
   renderPlayerOfWeek();
   renderTopScorerWeek();
   renderMatchesLists();
+  renderTournament();
 }
 
 // Init
