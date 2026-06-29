@@ -5,7 +5,26 @@
   // توجيه فوري: رابط الأهالي (#live) يبقى كما هو، لكنه يفتح الآن واجهة الأهالي الجديدة (parent.html)
   // هذا يحدث قبل تحميل أي شيء آخر، فلا تظهر شاشة المشرف مطلقاً لمن يفتح هذا الرابط
   if (location.hash === '#live') {
-    location.replace('parent.html' + location.search);
+    // إلغاء قسري لأي Service Worker قديم مسجّل من زيارة سابقة لهذا الجهاز (قبل هذا التحديث):
+    // بعض الأجهزة كانت قد سجّلت نسخة قديمة من sw.js تستمر بتخزين نسخة قديمة من admin.html
+    // مهما رفعنا تحديثات جديدة على الخادم. هذا الكود يفرض إزالتها فوراً وينتظر اكتمال
+    // الإزالة فعلياً قبل تنفيذ التحويل، حتى لا يُلغى الإلغاء بسبب مغادرة الصفحة قبل اكتماله.
+    // هذا يحدث فقط في وضع الأهالي (#live)؛ وضع المشرف العادي لا يُغيَّر، ليبقى الموقع يعمل offline له كالمعتاد.
+    (async function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(reg => reg.unregister()));
+        }
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {
+        // تجاهل أي خطأ هنا، لا يجب أن يعطّل التوجيه نفسه
+      }
+      location.replace('parent.html' + location.search);
+    })();
   }
 </script>
 <meta charset="UTF-8">
