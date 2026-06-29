@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+<script>
+  // توجيه فوري: رابط الأهالي (#live) يبقى كما هو، لكنه يفتح الآن واجهة الأهالي الجديدة (parent.html)
+  // هذا يحدث قبل تحميل أي شيء آخر، فلا تظهر شاشة المشرف مطلقاً لمن يفتح هذا الرابط
+  if (location.hash === '#live') {
+    location.replace('parent.html' + location.search);
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
