@@ -42,81 +42,112 @@
   @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 
   :root {
-    --green-deep: #1a4a2e;
+    --green-deep: #123524;
     --green-mid:  #2d7a4f;
     --green-light:#4caf7d;
-    --gold:       #d4a017;
+    --green-glow: #e8f5ee;
+    --gold:       #c8941a;
     --gold-light: #f0c84a;
-    --cream:      #fdf8ef;
+    --gold-soft:  #fff3d6;
+    --cream:      #faf6ee;
     --white:      #ffffff;
     --gray-soft:  #f0ede6;
-    --gray-text:  #555;
-    --shadow:     0 4px 20px rgba(26,74,46,0.12);
+    --gray-text:  #5c5c5c;
+    --radius-lg:  20px;
+    --radius-md:  14px;
+    --radius-sm:  10px;
+    --shadow:     0 4px 20px rgba(18,53,36,0.10);
+    --shadow-lift:0 14px 34px rgba(18,53,36,0.18);
+    --ease: cubic-bezier(.22,.9,.35,1);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'Tajawal', sans-serif;
-    background: var(--cream);
+    background:
+      radial-gradient(1200px 500px at 100% -10%, rgba(212,160,23,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, rgba(45,122,79,0.10), transparent 55%),
+      var(--cream);
     color: var(--green-deep);
     min-height: 100vh;
   }
 
   /* === HEADER === */
   header {
-    background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 100%);
+    background: linear-gradient(150deg, var(--green-deep) 0%, var(--green-mid) 100%);
     color: white;
-    padding: 20px 24px 16px;
+    padding: 18px 20px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     box-shadow: var(--shadow);
+    position: relative;
+    z-index: 5;
   }
-  header h1 { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px; }
-  header p  { font-size: 0.82rem; opacity: 0.8; margin-top: 2px; }
+  header h1 { font-size: 1.28rem; font-weight: 900; letter-spacing: -0.5px; }
+  header p  { font-size: 0.78rem; opacity: 0.82; margin-top: 2px; }
   .header-icon { font-size: 2.2rem; }
-  .header-btns { display: flex; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .header-btns { display: flex; gap: 6px; align-items: center; }
   .btn-header {
-    padding: 5px 10px; border-radius: 8px; font-family: 'Tajawal', sans-serif;
-    font-size: 0.72rem; font-weight: 700; cursor: pointer; border: none;
-    display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    width: 38px; height: 38px; border-radius: 12px; font-family: 'Tajawal', sans-serif;
+    font-size: 1.02rem; font-weight: 700; cursor: pointer; border: none;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: transform 0.15s var(--ease), filter 0.15s;
   }
-  .btn-export { background: var(--gold); color: white; }
-  .btn-import { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
+  .btn-header:active { transform: scale(0.9); }
+  .btn-header:hover { filter: brightness(1.08); }
+  .btn-export { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 3px 10px rgba(200,148,26,0.4); }
+  .btn-import { background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.28); }
 
   /* === TABS === */
   .tabs {
     display: flex;
     background: var(--green-deep);
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255,255,255,0.08);
     overflow-x: auto;
     scrollbar-width: none;
+    position: sticky; top: 0; z-index: 20;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.14);
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 1 0 auto; min-width: 78px; padding: 12px 10px; text-align: center;
-    color: rgba(255,255,255,0.6); font-size: 0.8rem; font-weight: 700;
-    cursor: pointer; transition: all 0.2s; border: none; background: none;
+    flex: 1 0 auto; min-width: 74px; padding: 10px 8px 9px; text-align: center;
+    color: rgba(255,255,255,0.55); font-size: 0.74rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s var(--ease); border: none; background: none;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    position: relative;
   }
+  .tab .tab-ic { font-size: 1.15rem; transition: transform 0.2s var(--ease); }
+  .tab .tab-lb { white-space: nowrap; }
   .tab.active {
     color: var(--gold-light);
-    border-bottom: 3px solid var(--gold-light);
   }
-  .tab:hover:not(.active) { color: rgba(255,255,255,0.9); }
+  .tab.active .tab-ic { transform: translateY(-1px) scale(1.08); }
+  .tab.active::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 3px; border-radius: 3px 3px 0 0;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  }
+  .tab:hover:not(.active) { color: rgba(255,255,255,0.88); }
 
   /* === CONTENT === */
-  .content { padding: 16px; max-width: 700px; margin: 0 auto; }
-  .page { display: none; }
+  .content { padding: 14px 16px 28px; max-width: 700px; margin: 0 auto; }
+  .page { display: none; animation: pageIn 0.28s var(--ease); }
   .page.active { display: block; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   /* === CARDS === */
   .card {
-    background: white;
-    border-radius: 16px;
+    background: var(--white);
+    border-radius: var(--radius-lg);
     padding: 18px;
     margin-bottom: 14px;
     box-shadow: var(--shadow);
+    border: 1px solid rgba(18,53,36,0.05);
+    transition: box-shadow 0.2s var(--ease);
   }
   .card-title {
     font-size: 1rem; font-weight: 800; color: var(--green-deep);
@@ -124,30 +155,53 @@
   }
 
   /* === FORM ELEMENTS === */
-  input, select {
+  input, select, textarea {
     width: 100%; padding: 10px 14px;
-    border: 2px solid #e0ddd6; border-radius: 10px;
+    border: 2px solid #e5e1d7; border-radius: var(--radius-sm);
     font-family: 'Tajawal', sans-serif; font-size: 0.9rem;
     background: var(--gray-soft); color: var(--green-deep);
-    margin-bottom: 10px; transition: border 0.2s;
+    margin-bottom: 10px; transition: border 0.2s, background 0.2s;
   }
-  input:focus, select:focus {
+  textarea { resize: vertical; line-height: 1.6; }
+  input:focus, select:focus, textarea:focus {
     outline: none; border-color: var(--green-mid);
     background: white;
   }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 20px; border-radius: 10px; font-family: 'Tajawal', sans-serif;
+    padding: 11px 20px; border-radius: var(--radius-sm); font-family: 'Tajawal', sans-serif;
     font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none;
-    transition: all 0.2s; width: 100%;
+    transition: all 0.18s var(--ease); width: 100%;
   }
-  .btn-primary { background: var(--green-mid); color: white; }
-  .btn-primary:hover { background: var(--green-deep); transform: translateY(-1px); }
-  .btn-gold { background: var(--gold); color: white; }
-  .btn-gold:hover { background: #b88a12; transform: translateY(-1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--green-mid), var(--green-deep)); color: white; box-shadow: 0 4px 14px rgba(45,122,79,0.28); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(45,122,79,0.35); }
+  .btn-gold { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 4px 14px rgba(200,148,26,0.28); }
+  .btn-gold:hover { transform: translateY(-1px); }
   .btn-sm { padding: 6px 14px; font-size: 0.8rem; width: auto; border-radius: 8px; }
   .btn-danger { background: #e53935; color: white; }
+  .btn:active { transform: scale(0.98); }
+
+  /* === RULES EDIT UI === */
+  .rule-edit-card {
+    background: var(--gray-soft); border-radius: var(--radius-sm);
+    padding: 12px; margin-bottom: 10px; border: 1px dashed #d8d3c6;
+  }
+  .rule-edit-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .rule-edit-row select { margin-bottom: 0; width: auto; font-size: 0.75rem; padding: 8px 6px; }
+  .rule-edit-row input { margin-bottom: 0; }
+  .btn-icon-danger {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; border: none;
+    background: #fdecea; color: #c62828; cursor: pointer; font-size: 0.9rem;
+  }
+  .rules-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .btn-edit-rules {
+    background: rgba(255,255,255,0.16); color: white; border: 1px solid rgba(255,255,255,0.35);
+    border-radius: var(--radius-sm); padding: 8px 14px; font-family: 'Tajawal', sans-serif;
+    font-weight: 700; font-size: 0.8rem; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s var(--ease);
+  }
+  .btn-edit-rules:hover { background: rgba(255,255,255,0.28); }
 
   .row { display: flex; gap: 8px; }
   .row input, .row select { margin-bottom: 0; }
@@ -551,23 +605,23 @@
     </div>
   </div>
   <div class="header-btns">
-    <button class="btn-header btn-export" onclick="exportData()">📤 حفظ نسخة</button>
-    <label class="btn-header btn-import" style="cursor:pointer">
-      📥 تحميل نسخة
+    <button class="btn-header btn-export" onclick="exportData()" title="حفظ نسخة">📤</button>
+    <label class="btn-header btn-import" style="cursor:pointer" title="تحميل نسخة">
+      📥
       <input type="file" accept=".json" onchange="importData(event)" style="display:none">
     </label>
-    <button class="btn-header" onclick="showAdminLogin()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)">🔐 دخول المشرف</button>
+    <button class="btn-header" onclick="showAdminLogin()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)" title="دخول المشرف">🔐</button>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('home')">🏠 الرئيسية</button>
-  <button class="tab" onclick="switchTab('add-points')">⭐ نقاط</button>
-  <button class="tab" onclick="switchTab('students')">👥 الطلاب</button>
-  <button class="tab" onclick="switchTab('teams')">🏅 الفرق</button>
-  <button class="tab" onclick="switchTab('log')">📋 السجل</button>
-  <button class="tab" onclick="switchTab('league')">⚽ دوري الرجال</button>
-  <button class="tab" onclick="switchTab('rules')">📜 القوانين</button>
+  <button class="tab active" onclick="switchTab('home')"><span class="tab-ic">🏠</span><span class="tab-lb">الرئيسية</span></button>
+  <button class="tab" onclick="switchTab('add-points')"><span class="tab-ic">⭐</span><span class="tab-lb">نقاط</span></button>
+  <button class="tab" onclick="switchTab('students')"><span class="tab-ic">👥</span><span class="tab-lb">الطلاب</span></button>
+  <button class="tab" onclick="switchTab('teams')"><span class="tab-ic">🏅</span><span class="tab-lb">الفرق</span></button>
+  <button class="tab" onclick="switchTab('league')"><span class="tab-ic">⚽</span><span class="tab-lb">الدوري</span></button>
+  <button class="tab" onclick="switchTab('log')"><span class="tab-ic">📋</span><span class="tab-lb">السجل</span></button>
+  <button class="tab" onclick="switchTab('rules')"><span class="tab-ic">📜</span><span class="tab-lb">القوانين</span></button>
 </div>
 
 <!-- ===================== HOME ===================== -->
@@ -914,105 +968,33 @@
 <div id="page-rules" class="page">
 
   <div class="card" style="background:linear-gradient(135deg,var(--green-deep),var(--green-mid));color:white">
-    <div class="card-title" style="color:white">📜 نظام النقاط والقوانين</div>
-    <p style="font-size:0.85rem;line-height:1.8;opacity:0.92">
-      هذه الصفحة مرجع موحّد لآلية احتساب النقاط وقوانين النادي. تظهر بنفس المحتوى لكل من المشرفين والأهالي، لضمان الشفافية الكاملة للجميع.
-    </p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">⭐ آلية تحصيل النقاط</div>
-
-    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">📅 الحضور على الموعد — 20 نقطة</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        كل موعد يحضره الطالب يُسجَّل حضوراً. الحضور المتتالي (بدون أي انقطاع) يزيد 5 نقاط إضافية فوق الـ20 الأساسية مع كل حضور متتالي جديد، بلا سقف. أول غياب عن موعد فيه نشاط يصفّر هذه الزيادة ويعود الحضور التالي لاحتساب 20 نقطة أساسية من جديد — لكن عدد مرات الحضور الكلي للطالب لا يتأثر أبداً ويبقى محفوظاً.
-      </p>
-      <p style="font-size:0.78rem;color:var(--gold);font-weight:700;margin-top:6px">
-        🔥 مثال: حضور 1 = 20 نقطة، حضور 2 متتالي = 25، حضور 3 متتالي = 30 ... وهكذا.
-      </p>
-    </div>
-
-    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">🎯 نقاط مشرف الفقرة — 5 إلى 20 نقطة</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        يمنح مشرف كل فقرة نقاطاً تتراوح بين 5 و20 نقطة حسب تفاعل الطالب ومشاركته خلال الفقرة.
-      </p>
-    </div>
-
-    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">🕌 صلاة وجلسة الفجر — 10 نقاط</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        الحضور على صلاة الفجر وجلسة الفجر يمنح الطالب 10 نقاط.
-      </p>
-    </div>
-
-    <div style="border-right:4px solid var(--gold);padding:10px 14px;margin-bottom:12px;background:#fffaf0;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:6px">🏆 الفوز في النشاط الأسبوعي</div>
-      <div style="font-size:0.82rem;color:var(--gray-text);line-height:2">
-        🥇 المركز الأول: <b style="color:var(--green-deep)">30 نقطة</b><br>
-        🥈 الثاني: <b style="color:var(--green-deep)">20 نقطة</b><br>
-        🥉 الثالث: <b style="color:var(--green-deep)">15 نقطة</b><br>
-        باقي المشاركين: <b style="color:var(--green-deep)">10 نقاط</b>
+    <div class="rules-toolbar">
+      <div>
+        <div class="card-title" style="color:white;margin-bottom:6px">📜 نظام النقاط والقوانين</div>
+        <p id="rules-intro-text" style="font-size:0.85rem;line-height:1.8;opacity:0.92"></p>
       </div>
-    </div>
-
-    <div style="border-right:4px solid var(--gold);padding:10px 14px;margin-bottom:12px;background:#fffaf0;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:6px">💡 يوم الريادة</div>
-      <div style="font-size:0.82rem;color:var(--gray-text);line-height:2">
-        🥇 المركز الأول: <b style="color:var(--green-deep)">50 نقطة</b><br>
-        🥈 الثاني: <b style="color:var(--green-deep)">35 نقطة</b><br>
-        🥉 الثالث: <b style="color:var(--green-deep)">25 نقطة</b><br>
-        باقي المشاركين: <b style="color:var(--green-deep)">10 نقاط</b>
-      </div>
-    </div>
-
-    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;background:#f7faf8;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">📖 تسميع القرآن — 20 نقطة لكل صفحة</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        كل صفحة يسمّعها الطالب من القرآن الكريم تمنحه 20 نقطة.
-      </p>
+      <button class="btn-edit-rules" onclick="startEditRules()">✏️ تعديل</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">⚖️ القوانين</div>
-
-    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:#c62828;margin-bottom:4px">1️⃣ الغياب بدون عذر</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        كل غياب عن الموعد بدون عذر يحرم الطالب من المشاركة في مباراة كرة القدم القادمة.
-      </p>
+  <div id="rules-view-mode">
+    <div class="card">
+      <div class="card-title">⭐ آلية تحصيل النقاط</div>
+      <div id="rules-points-list"></div>
     </div>
 
-    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:#c62828;margin-bottom:4px">2️⃣ ترتيب الأحذية</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        وضع الحذاء في غير مكانه (الطابق الثاني) يستوجب خصم 5 نقاط من المخالف.
-      </p>
+    <div class="card">
+      <div class="card-title">⚖️ القوانين</div>
+      <div id="rules-laws-list"></div>
     </div>
 
-    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:#c62828;margin-bottom:4px">3️⃣ التأخر عن تسجيل الحضور</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        في حال تم أخذ الحضور رسمياً، تُلغى نقاط الحضور عن الطلاب المتأخرين بعدها.
-      </p>
-    </div>
-
-    <div style="border-right:4px solid #2d7a4f;padding:10px 14px;background:#eef7f1;border-radius:0 10px 10px 0">
-      <div style="font-weight:800;color:#2d7a4f;margin-bottom:4px">4️⃣ الغياب بعذر</div>
-      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
-        الغياب بعذر مقبول لا يستوجب أي خصم ولا يُمنح أي نقاط، ويبقى الطالب مسموحاً له بالمشاركة في الدوري.
-      </p>
+    <div class="card" style="background:#fff8e1;border:1px solid #ffe082">
+      <div class="card-title">✏️ ملاحظة للمشرفين</div>
+      <p id="rules-admin-note" style="font-size:0.82rem;color:#7a5c00;line-height:1.7"></p>
     </div>
   </div>
 
-  <div class="card" style="background:#fff8e1;border:1px solid #ffe082">
-    <div class="card-title">✏️ ملاحظة للمشرفين</div>
-    <p style="font-size:0.82rem;color:#7a5c00;line-height:1.7">
-      عند منح نقاط حضور لطالب من صفحة "نقاط"، يقترح النظام تلقائياً العدد الصحيح بناءً على سترايك حضوره الحالي 🔥 — يمكنك دائماً تعديل العدد يدوياً إذا لزم الأمر.
-    </p>
-  </div>
+  <div id="rules-edit-mode" style="display:none"></div>
 
 </div>
 
@@ -1083,6 +1065,7 @@ let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
   log: [],        // {id, icon, text, time, meta, date}
   weeks: [],      // أرشيف الأسابيع المنتهية: {id, label, from, to, studentsSnapshot, teamsSnapshot}
   currentWeekStart: null, // ISO date لبداية الأسبوع الحالي
+  rulesConfig: null, // محتوى صفحة القوانين القابل للتعديل من المشرفين — يُملأ تلقائياً بالقيم الافتراضية
   league: {
     matches: [],     // {id, teamAId, teamBId, scoreA, scoreB, date, status:'played'|'scheduled', scorers:[{studentId, goals, teamId}]}
     playerOfWeek: {}, // { 'YYYY-Www': studentId }
@@ -1094,6 +1077,7 @@ let state = JSON.parse(localStorage.getItem('nadyState') || 'null') || {
 function ensureFields() {
   if (!state.weeks) state.weeks = [];
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
+  if (!state.rulesConfig) state.rulesConfig = defaultRulesConfig();
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
@@ -1119,6 +1103,200 @@ function ensureFields() {
 // نقاط الطالب/الفريق "هذا الأسبوع فقط" = الحالية - نقطة بداية الأسبوع
 function weekPointsOf(entity) {
   return entity.points - (entity.weekStartPoints ?? entity.points);
+}
+
+// ===================== صفحة القوانين (قابلة للتعديل من المشرفين) =====================
+function defaultRulesConfig() {
+  return {
+    intro: 'هذه الصفحة مرجع موحّد لآلية احتساب النقاط وقوانين النادي. تظهر بنفس المحتوى لكل من المشرفين والأهالي، لضمان الشفافية الكاملة للجميع.',
+    pointsRules: [
+      { icon: '📅', color: 'green', title: 'الحضور على الموعد — 20 نقطة',
+        desc: 'كل موعد يحضره الطالب يُسجَّل حضوراً. الحضور المتتالي (بدون أي انقطاع) يزيد 5 نقاط إضافية فوق الـ20 الأساسية مع كل حضور متتالي جديد، بلا سقف. أول غياب عن موعد فيه نشاط يصفّر هذه الزيادة ويعود الحضور التالي لاحتساب 20 نقطة أساسية من جديد — لكن عدد مرات الحضور الكلي للطالب لا يتأثر أبداً ويبقى محفوظاً.',
+        note: '🔥 مثال: حضور 1 = 20 نقطة، حضور 2 متتالي = 25، حضور 3 متتالي = 30 ... وهكذا.' },
+      { icon: '🎯', color: 'green', title: 'نقاط مشرف الفقرة — 5 إلى 20 نقطة',
+        desc: 'يمنح مشرف كل فقرة نقاطاً تتراوح بين 5 و20 نقطة حسب تفاعل الطالب ومشاركته خلال الفقرة.', note: '' },
+      { icon: '🕌', color: 'green', title: 'صلاة وجلسة الفجر — 10 نقاط',
+        desc: 'الحضور على صلاة الفجر وجلسة الفجر يمنح الطالب 10 نقاط.', note: '' },
+      { icon: '🏆', color: 'gold', title: 'الفوز في النشاط الأسبوعي',
+        desc: '🥇 المركز الأول: **30 نقطة**\n🥈 الثاني: **20 نقطة**\n🥉 الثالث: **15 نقطة**\nباقي المشاركين: **10 نقاط**', note: '' },
+      { icon: '💡', color: 'gold', title: 'يوم الريادة',
+        desc: '🥇 المركز الأول: **50 نقطة**\n🥈 الثاني: **35 نقطة**\n🥉 الثالث: **25 نقطة**\nباقي المشاركين: **10 نقاط**', note: '' },
+      { icon: '📖', color: 'green', title: 'تسميع القرآن — 20 نقطة لكل صفحة',
+        desc: 'كل صفحة يسمّعها الطالب من القرآن الكريم تمنحه 20 نقطة.', note: '' }
+    ],
+    lawsRules: [
+      { icon: '1️⃣', color: 'red', title: 'الغياب بدون عذر',
+        desc: 'كل غياب عن الموعد بدون عذر يحرم الطالب من المشاركة في مباراة كرة القدم القادمة.' },
+      { icon: '2️⃣', color: 'red', title: 'ترتيب الأحذية',
+        desc: 'وضع الحذاء في غير مكانه (الطابق الثاني) يستوجب خصم 5 نقاط من المخالف.' },
+      { icon: '3️⃣', color: 'red', title: 'التأخر عن تسجيل الحضور',
+        desc: 'في حال تم أخذ الحضور رسمياً، تُلغى نقاط الحضور عن الطلاب المتأخرين بعدها.' },
+      { icon: '4️⃣', color: 'green', title: 'الغياب بعذر',
+        desc: 'الغياب بعذر مقبول لا يستوجب أي خصم ولا يُمنح أي نقاط، ويبقى الطالب مسموحاً له بالمشاركة في الدوري.' }
+    ],
+    adminNote: 'عند منح نقاط حضور لطالب من صفحة "نقاط"، يقترح النظام تلقائياً العدد الصحيح بناءً على سترايك حضوره الحالي 🔥 — يمكنك دائماً تعديل العدد يدوياً إذا لزم الأمر.'
+  };
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// دعم تنسيق بسيط جداً داخل نص القانون: **تعريض** وأسطر جديدة
+function mdLite(text) {
+  return escapeHtml(text).split('\n')
+    .map(line => line.replace(/\*\*(.+?)\*\*/g, '<b style="color:var(--green-deep)">$1</b>'))
+    .join('<br>');
+}
+
+function ruleColorStyle(color) {
+  if (color === 'gold') return { border: 'var(--gold)', bg: '#fffaf0', titleColor: 'var(--green-deep)' };
+  if (color === 'red')  return { border: '#c62828', bg: '#fdecea', titleColor: '#c62828' };
+  return { border: 'var(--green-mid)', bg: '#f7faf8', titleColor: 'var(--green-deep)' };
+}
+
+// عرض صفحة القوانين للقراءة (تُستدعى من render() الرئيسية)
+function renderRulesPage() {
+  const cfg = state.rulesConfig;
+  if (!cfg) return;
+
+  const introEl = document.getElementById('rules-intro-text');
+  if (introEl) introEl.textContent = cfg.intro || '';
+
+  const ptsEl = document.getElementById('rules-points-list');
+  if (ptsEl) {
+    ptsEl.innerHTML = (cfg.pointsRules || []).map(r => {
+      const c = ruleColorStyle(r.color);
+      return `<div style="border-right:4px solid ${c.border};padding:10px 14px;margin-bottom:12px;background:${c.bg};border-radius:0 10px 10px 0">
+        <div style="font-weight:800;color:${c.titleColor};margin-bottom:4px">${escapeHtml(r.icon)} ${escapeHtml(r.title)}</div>
+        <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">${mdLite(r.desc)}</p>
+        ${r.note ? `<p style="font-size:0.78rem;color:var(--gold);font-weight:700;margin-top:6px">${escapeHtml(r.note)}</p>` : ''}
+      </div>`;
+    }).join('') || '<p style="font-size:0.85rem;color:var(--gray-text)">لا توجد بنود بعد.</p>';
+  }
+
+  const lawsEl = document.getElementById('rules-laws-list');
+  if (lawsEl) {
+    lawsEl.innerHTML = (cfg.lawsRules || []).map(r => {
+      const c = ruleColorStyle(r.color);
+      return `<div style="border-right:4px solid ${c.border};padding:10px 14px;margin-bottom:10px;background:${c.bg};border-radius:0 10px 10px 0">
+        <div style="font-weight:800;color:${c.titleColor};margin-bottom:4px">${escapeHtml(r.icon)} ${escapeHtml(r.title)}</div>
+        <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">${mdLite(r.desc)}</p>
+      </div>`;
+    }).join('') || '<p style="font-size:0.85rem;color:var(--gray-text)">لا توجد قوانين بعد.</p>';
+  }
+
+  const noteEl = document.getElementById('rules-admin-note');
+  if (noteEl) noteEl.textContent = cfg.adminNote || '';
+}
+
+// ---- وضع تعديل القوانين ----
+let rulesDraft = null;
+
+function startEditRules() {
+  rulesDraft = JSON.parse(JSON.stringify(state.rulesConfig || defaultRulesConfig()));
+  document.getElementById('rules-view-mode').style.display = 'none';
+  document.getElementById('rules-edit-mode').style.display = 'block';
+  renderRulesEditForm();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEditRules() {
+  rulesDraft = null;
+  document.getElementById('rules-view-mode').style.display = 'block';
+  document.getElementById('rules-edit-mode').style.display = 'none';
+}
+
+async function saveRulesEdit() {
+  state.rulesConfig = rulesDraft;
+  rulesDraft = null;
+  save();
+  const adminName = sessionStorage.getItem('nadyAdmin') || '';
+  logEntry('📜', `تعديل صفحة القوانين${adminName ? ' — ' + adminName : ''}`);
+  document.getElementById('rules-view-mode').style.display = 'block';
+  document.getElementById('rules-edit-mode').style.display = 'none';
+  render();
+  toast('✅ تم حفظ القوانين للجميع');
+}
+
+function updateRuleDraftMeta(field, value) {
+  rulesDraft[field] = value;
+}
+function updateRuleDraftItem(section, idx, field, value) {
+  rulesDraft[section][idx][field] = value;
+}
+
+function addRuleItem(section) {
+  const item = section === 'pointsRules'
+    ? { icon: '⭐', color: 'green', title: 'بند جديد', desc: '', note: '' }
+    : { icon: '•', color: 'red', title: 'قانون جديد', desc: '' };
+  rulesDraft[section].push(item);
+  renderRulesEditForm();
+}
+
+async function removeRuleItem(section, idx) {
+  if (!await customConfirm('حذف هذا البند نهائياً؟', '🗑️')) return;
+  rulesDraft[section].splice(idx, 1);
+  renderRulesEditForm();
+}
+
+function renderRulesEditForm() {
+  const wrap = document.getElementById('rules-edit-mode');
+  if (!wrap || !rulesDraft) return;
+
+  const colorSelect = (section, i, c) => `
+    <select onchange="updateRuleDraftItem('${section}',${i},'color',this.value)">
+      <option value="green" ${c === 'green' ? 'selected' : ''}>🟢 أخضر</option>
+      <option value="gold" ${c === 'gold' ? 'selected' : ''}>🟡 ذهبي</option>
+      <option value="red" ${c === 'red' ? 'selected' : ''}>🔴 أحمر</option>
+    </select>`;
+
+  const ruleCard = (section, r, i) => `
+    <div class="rule-edit-card">
+      <div class="rule-edit-row">
+        <input type="text" value="${escapeHtml(r.icon)}" maxlength="4" style="width:52px;text-align:center;flex:none"
+          oninput="updateRuleDraftItem('${section}',${i},'icon',this.value)">
+        <input type="text" value="${escapeHtml(r.title)}" placeholder="عنوان البند" style="flex:1"
+          oninput="updateRuleDraftItem('${section}',${i},'title',this.value)">
+        <button class="btn-icon-danger" onclick="removeRuleItem('${section}',${i})" title="حذف البند">🗑️</button>
+      </div>
+      <div class="rule-edit-row">${colorSelect(section, i, r.color)}</div>
+      <textarea rows="3" placeholder="تفاصيل البند... (يمكنك استخدام **نص عريض** وأسطر جديدة)"
+        oninput="updateRuleDraftItem('${section}',${i},'desc',this.value)">${escapeHtml(r.desc)}</textarea>
+      ${section === 'pointsRules' ? `<input type="text" value="${escapeHtml(r.note || '')}" placeholder="ملاحظة إضافية بلون ذهبي (اختياري)"
+        oninput="updateRuleDraftItem('${section}',${i},'note',this.value)">` : ''}
+    </div>`;
+
+  wrap.innerHTML = `
+    <div class="card" style="border:2px dashed var(--gold-light)">
+      <div class="card-title">✏️ مقدمة الصفحة</div>
+      <textarea rows="3" oninput="updateRuleDraftMeta('intro',this.value)">${escapeHtml(rulesDraft.intro)}</textarea>
+    </div>
+
+    <div class="card" style="border:2px dashed var(--gold-light)">
+      <div class="card-title">⭐ آلية تحصيل النقاط</div>
+      ${rulesDraft.pointsRules.map((r, i) => ruleCard('pointsRules', r, i)).join('')}
+      <button class="btn btn-sm" style="width:100%;background:#e8f5ee;color:var(--green-mid);border:2px dashed var(--green-mid)" onclick="addRuleItem('pointsRules')">➕ إضافة بند نقاط</button>
+    </div>
+
+    <div class="card" style="border:2px dashed var(--gold-light)">
+      <div class="card-title">⚖️ القوانين</div>
+      ${rulesDraft.lawsRules.map((r, i) => ruleCard('lawsRules', r, i)).join('')}
+      <button class="btn btn-sm" style="width:100%;background:#fdecea;color:#c62828;border:2px dashed #c62828" onclick="addRuleItem('lawsRules')">➕ إضافة قانون</button>
+    </div>
+
+    <div class="card" style="border:2px dashed var(--gold-light)">
+      <div class="card-title">✏️ ملاحظة للمشرفين</div>
+      <textarea rows="2" oninput="updateRuleDraftMeta('adminNote',this.value)">${escapeHtml(rulesDraft.adminNote)}</textarea>
+    </div>
+
+    <div class="row" style="gap:10px;margin-bottom:24px">
+      <button class="btn btn-primary" onclick="saveRulesEdit()">💾 حفظ القوانين للجميع</button>
+      <button class="btn btn-sm" style="background:#eee;color:#555;width:auto;padding:11px 18px" onclick="cancelEditRules()">✖ إلغاء</button>
+    </div>
+  `;
 }
 
 // ===================== اكتشاف التغييرات بوضع العرض الحي =====================
@@ -1767,6 +1945,7 @@ function applyPublicSnapshotToState(snapshot) {
     log: src.log || [],
     weeks: src.weeks || [],
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
+    rulesConfig: src.rulesConfig || null,
     league: {
       matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
@@ -1849,8 +2028,9 @@ function switchToHomeOnly() {
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
+  (event.currentTarget || event.target).classList.add('active');
   document.getElementById('page-' + tab).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   render();
 }
 
@@ -2334,6 +2514,7 @@ function render() {
   renderLog();
   updateStats();
   renderLeaguePage();
+  renderRulesPage();
   // تحديث قائمة المنح الجماعي فقط إذا كانت فارغة (لتفادي إعادة ضبط التحديد)
   if (!document.querySelector('.bulk-pick-btn')) renderBulkStudents();
 }
