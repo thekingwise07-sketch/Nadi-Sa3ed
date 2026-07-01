@@ -567,6 +567,7 @@
   <button class="tab" onclick="switchTab('teams')">🏅 الفرق</button>
   <button class="tab" onclick="switchTab('log')">📋 السجل</button>
   <button class="tab" onclick="switchTab('league')">⚽ دوري الرجال</button>
+  <button class="tab" onclick="switchTab('rules')">📜 القوانين</button>
 </div>
 
 <!-- ===================== HOME ===================== -->
@@ -625,6 +626,15 @@
     <button class="btn btn-danger" onclick="resetAttendanceCounts()">🔄 تصفير الحضور للجميع</button>
   </div>
 
+  <!-- إصلاح سجلات المنح الجماعي القديمة (قبل إصلاح عداد الحضور) -->
+  <div class="card">
+    <div class="card-title">🛠️ إصلاح حضور المنح الجماعي</div>
+    <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+      إصلاح لمرة واحدة: أي نقاط "حضور وانتظام" مُنحت سابقاً بطريقة "منح جماعي" لم تكن تُحتسب في عداد مرات الحضور أو الشارات (رغم احتساب النقاط نفسها بشكل صحيح). هذا الزر يصحّح ذلك دون التأثير على أي نقاط — فقط يفعّل عداد الحضور لهذه السجلات القديمة.
+    </p>
+    <button class="btn btn-primary" onclick="fixBulkAttendanceRecords()">🛠️ إصلاح سجلات الحضور الجماعية</button>
+  </div>
+
   <!-- Top 3 -->
   <div class="card">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
@@ -680,6 +690,7 @@
       <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(10)">+10</button>
     </div>
     <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
+    <div id="attendance-streak-hint" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#7a4a00;margin-bottom:10px;line-height:1.5"></div>
     <input type="text" id="pts-note" placeholder="ملاحظة (اختياري)">
     <div class="row">
       <button class="btn btn-primary" onclick="givePoints(1)">✅ منح النقاط</button>
@@ -899,6 +910,112 @@
 
 </div>
 
+<!-- ===================== RULES & POINTS SYSTEM ===================== -->
+<div id="page-rules" class="page">
+
+  <div class="card" style="background:linear-gradient(135deg,var(--green-deep),var(--green-mid));color:white">
+    <div class="card-title" style="color:white">📜 نظام النقاط والقوانين</div>
+    <p style="font-size:0.85rem;line-height:1.8;opacity:0.92">
+      هذه الصفحة مرجع موحّد لآلية احتساب النقاط وقوانين النادي. تظهر بنفس المحتوى لكل من المشرفين والأهالي، لضمان الشفافية الكاملة للجميع.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⭐ آلية تحصيل النقاط</div>
+
+    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">📅 الحضور على الموعد — 20 نقطة</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        كل موعد يحضره الطالب يُسجَّل حضوراً. الحضور المتتالي (بدون أي انقطاع) يزيد 5 نقاط إضافية فوق الـ20 الأساسية مع كل حضور متتالي جديد، بلا سقف. أول غياب عن موعد فيه نشاط يصفّر هذه الزيادة ويعود الحضور التالي لاحتساب 20 نقطة أساسية من جديد — لكن عدد مرات الحضور الكلي للطالب لا يتأثر أبداً ويبقى محفوظاً.
+      </p>
+      <p style="font-size:0.78rem;color:var(--gold);font-weight:700;margin-top:6px">
+        🔥 مثال: حضور 1 = 20 نقطة، حضور 2 متتالي = 25، حضور 3 متتالي = 30 ... وهكذا.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">🎯 نقاط مشرف الفقرة — 5 إلى 20 نقطة</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        يمنح مشرف كل فقرة نقاطاً تتراوح بين 5 و20 نقطة حسب تفاعل الطالب ومشاركته خلال الفقرة.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;margin-bottom:12px;background:#f7faf8;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">🕌 صلاة وجلسة الفجر — 10 نقاط</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        الحضور على صلاة الفجر وجلسة الفجر يمنح الطالب 10 نقاط.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid var(--gold);padding:10px 14px;margin-bottom:12px;background:#fffaf0;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:6px">🏆 الفوز في النشاط الأسبوعي</div>
+      <div style="font-size:0.82rem;color:var(--gray-text);line-height:2">
+        🥇 المركز الأول: <b style="color:var(--green-deep)">30 نقطة</b><br>
+        🥈 الثاني: <b style="color:var(--green-deep)">20 نقطة</b><br>
+        🥉 الثالث: <b style="color:var(--green-deep)">15 نقطة</b><br>
+        باقي المشاركين: <b style="color:var(--green-deep)">10 نقاط</b>
+      </div>
+    </div>
+
+    <div style="border-right:4px solid var(--gold);padding:10px 14px;margin-bottom:12px;background:#fffaf0;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:6px">💡 يوم الريادة</div>
+      <div style="font-size:0.82rem;color:var(--gray-text);line-height:2">
+        🥇 المركز الأول: <b style="color:var(--green-deep)">50 نقطة</b><br>
+        🥈 الثاني: <b style="color:var(--green-deep)">35 نقطة</b><br>
+        🥉 الثالث: <b style="color:var(--green-deep)">25 نقطة</b><br>
+        باقي المشاركين: <b style="color:var(--green-deep)">10 نقاط</b>
+      </div>
+    </div>
+
+    <div style="border-right:4px solid var(--green-mid);padding:10px 14px;background:#f7faf8;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:var(--green-deep);margin-bottom:4px">📖 تسميع القرآن — 20 نقطة لكل صفحة</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        كل صفحة يسمّعها الطالب من القرآن الكريم تمنحه 20 نقطة.
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚖️ القوانين</div>
+
+    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:#c62828;margin-bottom:4px">1️⃣ الغياب بدون عذر</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        كل غياب عن الموعد بدون عذر يحرم الطالب من المشاركة في مباراة كرة القدم القادمة.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:#c62828;margin-bottom:4px">2️⃣ ترتيب الأحذية</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        وضع الحذاء في غير مكانه (الطابق الثاني) يستوجب خصم 5 نقاط من المخالف.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid #c62828;padding:10px 14px;margin-bottom:10px;background:#fdecea;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:#c62828;margin-bottom:4px">3️⃣ التأخر عن تسجيل الحضور</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        في حال تم أخذ الحضور رسمياً، تُلغى نقاط الحضور عن الطلاب المتأخرين بعدها.
+      </p>
+    </div>
+
+    <div style="border-right:4px solid #2d7a4f;padding:10px 14px;background:#eef7f1;border-radius:0 10px 10px 0">
+      <div style="font-weight:800;color:#2d7a4f;margin-bottom:4px">4️⃣ الغياب بعذر</div>
+      <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.7">
+        الغياب بعذر مقبول لا يستوجب أي خصم ولا يُمنح أي نقاط، ويبقى الطالب مسموحاً له بالمشاركة في الدوري.
+      </p>
+    </div>
+  </div>
+
+  <div class="card" style="background:#fff8e1;border:1px solid #ffe082">
+    <div class="card-title">✏️ ملاحظة للمشرفين</div>
+    <p style="font-size:0.82rem;color:#7a5c00;line-height:1.7">
+      عند منح نقاط حضور لطالب من صفحة "نقاط"، يقترح النظام تلقائياً العدد الصحيح بناءً على سترايك حضوره الحالي 🔥 — يمكنك دائماً تعديل العدد يدوياً إذا لزم الأمر.
+    </p>
+  </div>
+
+</div>
+
 </div><!-- end content -->
 
 <div id="toast"></div>
@@ -1087,6 +1204,31 @@ function studentAttendedOn(studentId, isoDate) {
   );
 }
 
+// ===================== سترايك الحضور (أيام نادي متتالية بدون انقطاع) =====================
+// يبدأ العدّ من آخر يوم نادي فعلي (getClubDays، الأحدث أولاً) ويتراجع للخلف
+// طالما الطالب حاضر في كل يوم نادي، يستمر العدّ. أول يوم نادي تغيّب فيه الطالب يوقف العدّ فوراً.
+// لا علاقة لهذا العداد بعدد أيام التقويم بينهما — فقط تتابع أيام النادي الفعلية بدون انقطاع.
+function studentStreakOf(studentId) {
+  const clubDays = getClubDays(); // الأحدث أولاً
+  let streak = 0;
+  for (const day of clubDays) {
+    if (studentAttendedOn(studentId, day)) {
+      streak++;
+    } else {
+      break; // أول انقطاع يوقف التتابع
+    }
+  }
+  return streak;
+}
+
+// النقاط المقترحة لحضور اليوم بناءً على السترايك الحالي للطالب (قبل تسجيل حضور اليوم):
+// أول حضور (أو بعد انقطاع) = 20 نقطة أساسية، وكل حضور متتالي إضافي يزيد 5 نقاط فوق ذلك، بلا سقف.
+// مثال: حضور 1 = 20، حضور 2 متتالي = 25، حضور 3 متتالي = 30 ...
+function suggestedAttendancePoints(studentId) {
+  const currentStreak = studentStreakOf(studentId); // عدد أيام الحضور المتتالية حتى الآن (بدون يوم اليوم)
+  return 20 + currentStreak * 5;
+}
+
 let dismissedAlerts = JSON.parse(localStorage.getItem('dismissedAlerts') || '[]');
 let alertsDismissedUntil = parseInt(localStorage.getItem('alertsDismissedUntil') || '0');
 
@@ -1199,6 +1341,7 @@ function openStudentModal(studentId) {
   const team = state.teams.find(t => t.id == s.teamId);
   const goals = goalsOfStudent(s.id);
   const attendance = attendanceCountOf(s.id);
+  const streak = studentStreakOf(s.id);
   const initials = s.name.split(' ').slice(0,2).map(w => w[0]).join('');
   const avatarHTML = s.photo ? `<img src="${s.photo}" alt="${s.name}">` : initials;
 
@@ -1235,6 +1378,10 @@ function openStudentModal(studentId) {
         <div class="pmodal-stat">
           <div class="pmodal-stat-num">⚽ ${goals}</div>
           <div class="pmodal-stat-lbl">أهدافه بالدوري</div>
+        </div>
+        <div class="pmodal-stat" style="grid-column:1 / -1;${streak >= 2 ? 'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1px solid #ffb74d' : ''}">
+          <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
+          <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
         <div class="pmodal-stat soon" style="grid-column:1 / -1">
           <div class="pmodal-stat-num">📖 0</div>
@@ -1281,6 +1428,35 @@ function renderStudentBtns() {
 function pickStudent(id) {
   selectedStudentId = String(selectedStudentId) === String(id) ? null : id;
   renderStudentBtns();
+  maybeSuggestAttendancePoints();
+}
+
+// لو الفئة المختارة "حضور وانتظام" وفيه طالب محدد، يقترح تلقائياً عدد النقاط الصحيح
+// بناءً على سترايك الطالب الحالي (20 أساسية + 5 عن كل يوم حضور متتالي سابق).
+// مجرد اقتراح يملأ الحقل تلقائياً، يبقى قابلاً للتعديل اليدوي من المشرف في أي وقت.
+function maybeSuggestAttendancePoints() {
+  const amountInput = document.getElementById('pts-amount');
+  const hint = document.getElementById('attendance-streak-hint');
+  if (!amountInput) return;
+
+  if (selectedCat !== 'حضور وانتظام' || !selectedStudentId) {
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+
+  const student = state.students.find(s => String(s.id) === String(selectedStudentId));
+  if (!student) { if (hint) hint.style.display = 'none'; return; }
+
+  const streak = studentStreakOf(student.id);
+  const suggested = suggestedAttendancePoints(student.id);
+  amountInput.value = suggested;
+
+  if (hint) {
+    hint.style.display = 'block';
+    hint.innerHTML = streak >= 1
+      ? `🔥 سترايك ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية — تم اقتراح ${suggested} نقطة (20 + ${streak}×5). يمكنك تعديل العدد يدوياً إن أردت.`
+      : `تم اقتراح ${suggested} نقطة (حضور أساسي). يمكنك تعديل العدد يدوياً إن أردت.`;
+  }
 }
 
 function updateSelectedLabel() {
@@ -1429,8 +1605,17 @@ function giveBulkPoints() {
   });
 
   const noteText = note ? ` (${note})` : '';
+  // سجل ملخّص واحد يظهر بسجل النشاط العام (كما كان سابقاً)
   logEntry('⭐', `منح جماعي +${amt} نقطة لـ ${students.length} طالب | ${selectedBulkCat}${noteText}`, {
     kind: 'bulk', studentIds: students.map(s => s.id), change: amt
+  });
+  // سجلات فردية إضافية (kind: 'student') لكل طالب — ضرورية حتى تعمل بشكل صحيح:
+  // عداد مرات الحضور (attendanceCountOf)، الشارات (getStudentBadges)، وكشف نقاط الأسبوع لكل طالب
+  // ملاحظة: لا تُعرض هذه السجلات في "آخر الأحداث" العام لتفادي تكرار نفس الحدث بصرياً، لكنها تُحتسب في كل الحسابات المعتمدة على kind:'student'
+  students.forEach(s => {
+    logEntry('⭐', `${s.name} +${amt} نقطة | ${selectedBulkCat}${noteText} (منح جماعي)`, {
+      kind: 'student', studentId: s.id, teamId: s.teamId || null, change: amt, hidden: true
+    });
   });
   save(); render();
   toast(`✅ تم منح ${amt} نقطة لـ ${students.length} طالب`);
@@ -1674,6 +1859,7 @@ function selectCat(btn, cat) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   selectedCat = cat;
+  maybeSuggestAttendancePoints();
 }
 
 function setQuickPts(n) {
@@ -2059,6 +2245,40 @@ async function resetAttendanceCounts() {
   logEntry('🔄', `تم تصفير عداد الحضور لجميع الطلاب (إعادة تصنيف ${affected} سجل)`);
   save(); render();
   toast('✅ تم تصفير الحضور — النقاط الكلية محفوظة بالكامل');
+}
+
+// إصلاح لمرة واحدة: يحوّل كل سجلات المنح الجماعي القديمة (kind:'bulk') من فئة "حضور وانتظام"
+// إلى سجلات فردية مخفية (kind:'student', hidden:true) لكل طالب كان مشمولاً بالمنح،
+// حتى يعمل عداد مرات الحضور والشارات بأثر رجعي على هذه السجلات، دون أي تغيير في النقاط نفسها.
+// آمن للتشغيل أكثر من مرة: يتجاهل أي سجل bulk سبق إصلاحه (محدد بعلامة fixed:true في الميتاداتا).
+async function fixBulkAttendanceRecords() {
+  const bulkLogs = state.log.filter(l =>
+    l.meta && l.meta.kind === 'bulk' && !l.meta.fixed &&
+    l.text.includes('حضور وانتظام') && Array.isArray(l.meta.studentIds)
+  );
+
+  if (!bulkLogs.length) { toast('لا توجد سجلات منح جماعي قديمة بحاجة لإصلاح'); return; }
+
+  const totalStudentRecords = bulkLogs.reduce((sum, l) => sum + l.meta.studentIds.length, 0);
+  if (!await customConfirm(`سيتم إصلاح ${bulkLogs.length} سجل منح جماعي (${totalStudentRecords} سجل حضور لطلاب).\n\nلن تتغيّر أي نقاط — فقط سيتم تفعيل عداد الحضور والشارات لهذه السجلات.`, '🛠️')) return;
+
+  bulkLogs.forEach(l => {
+    l.meta.studentIds.forEach(sid => {
+      const student = state.students.find(s => String(s.id) === String(sid));
+      if (!student) return;
+      state.log.push({
+        id: Date.now() + Math.random(),
+        icon: '⭐',
+        text: `${student.name} +${l.meta.change} نقطة | حضور وانتظام (إصلاح رجعي)`,
+        time: l.time, date: l.date, isoDate: l.isoDate, adminName: l.adminName,
+        meta: { kind: 'student', studentId: student.id, teamId: student.teamId || null, change: l.meta.change, hidden: true }
+      });
+    });
+    l.meta.fixed = true; // لتفادي تكرار الإصلاح لو ضُغط الزر أكثر من مرة
+  });
+
+  save(); render();
+  toast(`✅ تم إصلاح ${bulkLogs.length} سجل — عداد الحضور محدّث الآن`);
 }
 
 // حذف سطر واحد من السجل + التراجع عن أثره على النقاط (إن وُجد)
@@ -2491,7 +2711,9 @@ function renderLog() {
   const studentFilter = document.getElementById('log-filter-student')?.value || '';
   const dateFilter = document.getElementById('log-filter-date')?.value || '';
 
-  let filtered = state.log.slice();
+  // السجلات المخفية (hidden:true، الناتجة عن منح جماعي) تُستثنى من العرض العام
+  // لكن تظهر بشكل طبيعي لو المشرف فلتر السجل حسب طالب معيّن — لأنها جزء من سجل هذا الطالب الفعلي
+  let filtered = state.log.slice().filter(l => studentFilter || !(l.meta && l.meta.hidden));
   if (teamFilter) {
     filtered = filtered.filter(l => l.meta && (
       (l.meta.kind === 'team' && String(l.meta.teamId) === teamFilter) ||
