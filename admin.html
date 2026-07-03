@@ -293,15 +293,6 @@
   }
   .leader-edit-row select { margin-bottom: 0; font-size: 0.78rem; padding: 8px; }
 
-  /* === SHARE LINK BOX === */
-  .share-box {
-    background: var(--gray-soft); border-radius: 12px; padding: 12px;
-    display: flex; gap: 8px; align-items: center; margin-top: 10px;
-  }
-  .share-box input {
-    margin-bottom: 0; font-size: 0.75rem; background: white;
-  }
-
   /* === PUBLIC VIEW BANNER === */
   .public-banner {
     background: linear-gradient(135deg, var(--gold), var(--gold-light));
@@ -1029,21 +1020,6 @@ function doLogin() {
   }
 }
 
-function loginAsPublic() {
-  document.getElementById('login-screen').style.display = 'none';
-}
-
-// زر "عرض النقاط للأهالي" في شاشة تسجيل الدخول
-// يوجّه المستخدم لوضع الأهالي بدلاً من إبقائه في شاشة المشرف
-function goToPublicView() {
-  history.replaceState(null, '', location.pathname + '#live');
-  document.getElementById('login-screen').style.display = 'none';
-  isLiveView = true;
-  isPublicView = true;
-  applyPublicViewRestrictions();
-  render();
-}
-
 function showAdminLogin() {
   document.getElementById('login-screen').style.display = 'flex';
 }
@@ -1082,6 +1058,7 @@ function ensureFields() {
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (state.league.tournament === undefined) state.league.tournament = null;
+  if (state.league.tournament && !state.league.tournament.revealedWeeks) state.league.tournament.revealedWeeks = {};
   state.students.forEach(s => {
     if (s.weekStartPoints === undefined) s.weekStartPoints = s.points;
     if (!s.createdAt) s.createdAt = Date.now();
@@ -1855,75 +1832,6 @@ function save() {
       .then(() => { pendingLocalWrite = false; })
       .catch(e => { pendingLocalWrite = false; console.warn('Firebase save error:', e); });
   }, 1500);
-}
-
-// ===================== رابط المشاركة (عرض فقط) =====================
-// نأخذ لقطة مصغّرة من البيانات المهمة فقط (بدون السجل أو الدوري) لتقليل حجم الرابط
-function buildShareSnapshot() {
-  return {
-    v: 1,
-    ts: Date.now(),
-    students: state.students.map(s => ({
-      id: s.id, name: s.name, points: s.points, teamId: s.teamId || ''
-    })),
-    teams: state.teams.map(t => ({
-      id: t.id, name: t.name, points: t.points, color: t.color || '#4caf7d',
-      leaderId: t.leaderId || '', viceId: t.viceId || ''
-    })),
-    matches: (state.league.matches || []).filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20),
-    playerOfWeek: state.league.playerOfWeek || {}
-  };
-}
-
-function encodeSnapshot(snapshot) {
-  const json = JSON.stringify(snapshot);
-  // ترميز يدعم الأحرف العربية (UTF-8 → base64)
-  const utf8 = unescape(encodeURIComponent(json));
-  return btoa(utf8);
-}
-
-function decodeSnapshot(encoded) {
-  const utf8 = atob(encoded);
-  const json = decodeURIComponent(escape(utf8));
-  return JSON.parse(json);
-}
-
-// ملاحظة: هذا ترميز بسيط لتصعيب رؤية الرمز عند تصفح الكود سريعاً —
-// هذا ليس تشفيراً حقيقياً، فأي شخص يفحص الكود بتمعّن يقدر يفك الترميز بسهولة.
-// التطبيق ملف واحد بدون خادم، فمفيش طريقة لإخفاء كلمة السر بشكل كامل وآمن.
-const ADMIN_CODE_B64 = 'Nzc3NDU=';
-function getAdminCode() { return atob(ADMIN_CODE_B64); }
-
-// الرابط الثابت الدائم للموقع — مثبّت بالكود حتى الأزرار تعطي نفس الرابط دايماً
-// بغض النظر من وين فُتح التطبيق (حتى لو فُتح من نسخة محلية أو رابط مختلف مؤقتاً)
-const SITE_BASE_URL = 'https://thekingwise07-sketch.github.io/Nadi-Sa3ed/';
-
-function copyAdminLink() {
-  const link = `${SITE_BASE_URL}#live`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(link)
-      .then(() => toast('✅ تم نسخ رابط المشرفين'))
-      .catch(() => { prompt('انسخ الرابط:', link); });
-  } else {
-    prompt('انسخ الرابط:', link);
-  }
-}
-function copyShareLink() {
-  const link = `${SITE_BASE_URL}#live`;
-
-  const box = document.getElementById('share-box');
-  const input = document.getElementById('share-link-text');
-  if (input) input.value = link;
-  if (box) box.style.display = 'flex';
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(link)
-      .then(() => toast('✅ تم نسخ الرابط الحي — يتحدث تلقائياً'))
-      .catch(() => toast('📋 انسخ الرابط من الحقل الظاهر'));
-  } else {
-    if (input) { input.select(); document.execCommand('copy'); }
-    toast('📋 الرابط جاهز، انسخه من الحقل');
-  }
 }
 
 // هل الصفحة مفتوحة كرابط مشاركة (عرض فقط)؟
@@ -3421,7 +3329,8 @@ async function createTournament() {
     id: Date.now(),
     teamIds, startDate,
     matches,
-    active: true
+    active: true,
+    revealedWeeks: {} // كل الأسابيع مغلقة عن الطلاب افتراضياً — تُفتح يدوياً من هنا
   };
   tournamentSelectedTeams = new Set();
   logEntry('🏆', `بدأ دوري الرجال بمشاركة ${teamIds.length} فرق — جدول 4 أسابيع`);
@@ -3435,6 +3344,16 @@ async function endTournament() {
   logEntry('🏁', 'تم إنهاء دوري الرجال الحالي');
   save(); render();
   toast('🏁 تم إنهاء الدوري');
+}
+
+// إظهار/إخفاء أسبوع معيّن من جدول البطولة للطلاب (رابط الأهالي parent.html)
+function toggleWeekReveal(week) {
+  const t = state.league.tournament;
+  if (!t) return;
+  if (!t.revealedWeeks) t.revealedWeeks = {};
+  t.revealedWeeks[week] = !t.revealedWeeks[week];
+  logEntry(t.revealedWeeks[week] ? '👁️' : '🙈', `${t.revealedWeeks[week] ? 'إظهار' : 'إخفاء'} الأسبوع ${week} من دوري الرجال للطلاب`);
+  save(); render();
 }
 
 async function deleteTournamentMatch(id) {
@@ -3516,8 +3435,13 @@ function renderTournament() {
     byWeek[w].push(m);
   });
 
-  const matchesHTML = Object.keys(byWeek).sort((a,b) => a - b).map(w => `
-    <div class="section-label" style="margin-top:14px">📅 الأسبوع ${w}</div>
+  const matchesHTML = Object.keys(byWeek).sort((a,b) => a - b).map(w => {
+    const revealed = !!(t.revealedWeeks && t.revealedWeeks[w]);
+    return `
+    <div class="section-label" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span>📅 الأسبوع ${w}</span>
+      <button class="btn btn-sm" style="width:auto;padding:4px 10px;${revealed ? 'background:#e8f5ee;color:var(--green-deep)' : 'background:#f5f5f5;color:#888'}" onclick="toggleWeekReveal(${w})">${revealed ? '👁️ ظاهر للطلاب' : '🙈 إظهار للطلاب'}</button>
+    </div>
     ${byWeek[w].map(m => {
       const scorersText = (m.scorers || []).length
         ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `${s.name} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
@@ -3541,7 +3465,8 @@ function renderTournament() {
         </div>
       </div>`;
     }).join('')}
-  `).join('');
+  `;
+  }).join('');
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
