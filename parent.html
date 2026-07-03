@@ -459,6 +459,12 @@
     <div id="league-standings"></div>
   </div>
 
+  <div class="card">
+    <div class="card-title">🥅 قائمة الهدافين</div>
+    <div id="league-scorers-list"></div>
+    <button class="btn-share" id="scorers-toggle-btn" style="display:none;background:var(--green-mid);margin-top:10px" onclick="toggleScorersExpanded()"></button>
+  </div>
+
   <div class="tabs-mini">
     <div class="tab-mini active" id="tab-played" onclick="setLeagueTab('played')">✅ نتائج سابقة</div>
     <div class="tab-mini" id="tab-upcoming" onclick="setLeagueTab('upcoming')">📅 مباريات قادمة</div>
@@ -611,6 +617,7 @@ let state = {
 };
 let rankMode = 'students';
 let leagueTab = 'played';
+let scorersExpanded = false;
 let currentScreen = 'home';
 
 function startOfWeekISO(d) {
@@ -768,6 +775,11 @@ function setLeagueTab(tab) {
   document.getElementById('tab-played').classList.toggle('active', tab === 'played');
   document.getElementById('tab-upcoming').classList.toggle('active', tab === 'upcoming');
   renderLeagueMatches();
+}
+
+function toggleScorersExpanded() {
+  scorersExpanded = !scorersExpanded;
+  renderLeagueScorers();
 }
 
 // ===================== RENDER: HOME =====================
@@ -1015,6 +1027,62 @@ function renderLeagueStandings() {
   </table>`;
 }
 
+// قائمة الهدافين مرتبة تنازلياً عبر كل مباريات الموسم — تعرض توب 5 افتراضياً مع زر "إظهار المزيد"
+function renderLeagueScorers() {
+  const el = document.getElementById('league-scorers-list');
+  const btn = document.getElementById('scorers-toggle-btn');
+  if (!el) return;
+
+  const goalsByStudent = {};
+  state.league.matches.forEach(m => {
+    if (m.status !== 'played') return;
+    (m.scorers || []).forEach(sc => {
+      goalsByStudent[sc.studentId] = (goalsByStudent[sc.studentId] || 0) + (sc.goals || 0);
+    });
+  });
+
+  const entries = Object.entries(goalsByStudent)
+    .map(([sid, goals]) => {
+      const student = state.students.find(s => String(s.id) === String(sid));
+      return student ? { student, goals } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.goals - a.goals);
+
+  if (!entries.length) {
+    el.innerHTML = `<div class="empty" style="padding:16px"><div class="empty-icon">⚽</div><p>لا توجد أهداف مسجلة بعد</p></div>`;
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  const visibleCount = scorersExpanded ? entries.length : Math.min(5, entries.length);
+  const visible = entries.slice(0, visibleCount);
+
+  el.innerHTML = visible.map((e, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+    const t = teamOf(e.student);
+    const avatarHTML = e.student.photo ? `<img src="${e.student.photo}">` : initialsOf(e.student.name);
+    return `
+    <div class="list-item">
+      <div class="list-rank ${rankClass}">${medal}</div>
+      <div class="list-avatar">${avatarHTML}</div>
+      <div class="list-info">
+        <div class="list-name">${escapeHTML(e.student.name)}</div>
+        <div class="list-sub">${t ? `<span class="team-color-dot" style="background:${t.color||'#1f6b41'}"></span>${escapeHTML(t.name)}` : ''}</div>
+      </div>
+      <div class="list-pts"><b>${e.goals}</b><span>هدف</span></div>
+    </div>`;
+  }).join('');
+
+  if (entries.length > 5) {
+    btn.style.display = 'flex';
+    btn.textContent = scorersExpanded ? '🔼 إظهار أقل' : `🔽 إظهار المزيد (${entries.length - 5} إضافي)`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
 function renderLeagueMatches() {
   const el = document.getElementById('league-matches');
   const teamName = id => { const t = state.teams.find(t => String(t.id) === String(id)); return t ? t.name : '—'; };
@@ -1055,6 +1123,7 @@ function renderLeagueMatches() {
 function renderLeague() {
   renderLeagueHighlights();
   renderLeagueStandings();
+  renderLeagueScorers();
   renderLeagueMatches();
 }
 
