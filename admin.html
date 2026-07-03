@@ -3582,6 +3582,31 @@ async function startApp() {
 
 startApp();
 
+// ===================== تنبيه تحديث لطيف (بدون تحديث قسري) =====================
+// بما إنه هاي صفحة فيها إدخال بيانات، ما منعمل reload قسري قد يضيع تعديل لسا ما انحفظ.
+// بس منفحص دورياً هل في نسخة أحدث على السيرفر، ولو في، منظهر شريط صغير
+// بالأسفل يخلي المشرف يقرر إيمتى يحدّث — بدل الاعتماد على تذكّر رفع رقم نسخة الكاش يدوياً.
+let __adminSourceAtLoad = null;
+async function checkForAdminUpdate() {
+  if (isPublicView) return;
+  try {
+    const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    if (__adminSourceAtLoad === null) { __adminSourceAtLoad = text; return; }
+    if (text !== __adminSourceAtLoad && !document.getElementById('update-banner')) {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="update-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a4a2e;color:white;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Tajawal',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 -4px 14px rgba(0,0,0,0.2)">
+          <span>🔄 في تحديث جديد للنظام</span>
+          <button onclick="location.reload()" style="background:#d4a017;color:#1a4a2e;border:none;border-radius:10px;padding:8px 16px;font-weight:800;font-family:inherit;cursor:pointer">تحديث الآن</button>
+        </div>`);
+    }
+  } catch (e) { /* تجاهل أي خطأ شبكة مؤقت */ }
+}
+setInterval(checkForAdminUpdate, 3 * 60 * 1000); // فحص كل 3 دقائق
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForAdminUpdate();
+});
+
 // Register Service Worker
 if ('serviceWorker' in navigator && !isPublicView) {
   window.addEventListener('load', () => {

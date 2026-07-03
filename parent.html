@@ -613,7 +613,7 @@ function initFirebase() {
 // ===================== STATE =====================
 let state = {
   students: [], teams: [], log: [], weeks: [], currentWeekStart: null,
-  league: { matches: [], playerOfWeek: {}, tournament: null }
+  league: { playerOfWeek: {}, tournament: null }
 };
 let rankMode = 'students';
 let leagueTab = 'played';
@@ -630,10 +630,10 @@ function startOfWeekISO(d) {
 function ensureFields() {
   if (!state.weeks) state.weeks = [];
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
-  if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
-  if (!state.league.matches) state.league.matches = [];
+  if (!state.league) state.league = { playerOfWeek: {}, tournament: null };
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (state.league.tournament === undefined) state.league.tournament = null;
+  if (state.league.tournament && !state.league.tournament.revealedWeeks) state.league.tournament.revealedWeeks = {};
   (state.students || []).forEach(s => {
     if (s.weekStartPoints === undefined) s.weekStartPoints = s.points;
     if (s.quranCount === undefined) s.quranCount = 0;
@@ -652,12 +652,25 @@ function applySnapshotToState(src) {
     weeks: src.weeks || [],
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
     league: {
-      matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
-      tournament: (src.league && src.league.tournament) || null
+      tournament: (src.league && src.league.tournament)
+        ? {
+            ...src.league.tournament,
+            matches: (src.league.tournament.matches || []).map(m => ({ ...m })),
+            revealedWeeks: src.league.tournament.revealedWeeks || {}
+          }
+        : null
     }
   };
   ensureFields();
+}
+
+// يرجّع مباريات البطولة الخاصة بالأسابيع التي فتحها المشرف للطلاب فقط (تجاهل الأسابيع المغلقة كلياً)
+function revealedTournamentMatches() {
+  const t = state.league.tournament;
+  if (!t || !t.matches) return [];
+  const rw = t.revealedWeeks || {};
+  return t.matches.filter(m => rw[m.week]);
 }
 
 function weekPointsOf(entity) { return entity.points - (entity.weekStartPoints ?? entity.points); }
@@ -711,7 +724,7 @@ function studentStreakOf(studentId) {
 
 function goalsOfStudent(studentId) {
   let goals = 0;
-  state.league.matches.forEach(m => {
+  revealedTournamentMatches().forEach(m => {
     if (m.status !== 'played') return;
     (m.scorers || []).forEach(sc => { if (String(sc.studentId) === String(studentId)) goals += (sc.goals || 0); });
   });
@@ -980,7 +993,7 @@ function currentWeekKey() { return (state.currentWeekStart || startOfWeekISO(new
 
 function renderLeagueHighlights() {
   const el = document.getElementById('league-highlights');
-  const weekMatches = state.league.matches.filter(m => m.status === 'played' && m.date >= currentWeekKey());
+  const weekMatches = revealedTournamentMatches().filter(m => m.status === 'played' && m.date >= currentWeekKey());
 
   const sid = state.league.playerOfWeek[currentWeekKey()];
   const player = sid ? state.students.find(s => String(s.id) === String(sid)) : null;
@@ -1005,7 +1018,8 @@ function renderLeagueHighlights() {
 
 function renderLeagueStandings() {
   const el = document.getElementById('league-standings');
-  const standings = computeStandings(state.league.matches).filter(r => r.played > 0);
+  const t = state.league.tournament;
+  const standings = computeStandings(revealedTournamentMatches(), t ? t.teamIds : null).filter(r => r.played > 0);
   if (!standings.length) {
     el.innerHTML = `<div class="empty" style="padding:16px"><p>لا توجد نتائج مباريات بعد</p></div>`;
     return;
@@ -1034,7 +1048,7 @@ function renderLeagueScorers() {
   if (!el) return;
 
   const goalsByStudent = {};
-  state.league.matches.forEach(m => {
+  revealedTournamentMatches().forEach(m => {
     if (m.status !== 'played') return;
     (m.scorers || []).forEach(sc => {
       goalsByStudent[sc.studentId] = (goalsByStudent[sc.studentId] || 0) + (sc.goals || 0);
@@ -1088,8 +1102,9 @@ function renderLeagueMatches() {
   const teamName = id => { const t = state.teams.find(t => String(t.id) === String(id)); return t ? t.name : '—'; };
   const teamColorOf = id => { const t = state.teams.find(t => String(t.id) === String(id)); return t ? (t.color || '#1f6b41') : '#999'; };
 
+  const revealed = revealedTournamentMatches();
   if (leagueTab === 'upcoming') {
-    const upcoming = state.league.matches.filter(m => m.status === 'scheduled').sort((a,b) => a.date.localeCompare(b.date));
+    const upcoming = revealed.filter(m => m.status === 'scheduled').sort((a,b) => a.date.localeCompare(b.date));
     el.innerHTML = upcoming.length ? upcoming.map(m => `
       <div class="match-row" style="flex-direction:column;align-items:stretch;gap:6px">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px">
@@ -1101,7 +1116,7 @@ function renderLeagueMatches() {
       </div>
     `).join('') : `<div class="empty" style="padding:16px"><p>لا توجد مباريات قادمة</p></div>`;
   } else {
-    const played = state.league.matches.filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date));
+    const played = revealed.filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date));
     el.innerHTML = played.length ? played.map(m => {
       const scorersText = (m.scorers||[]).length
         ? m.scorers.map(sc => { const s = state.students.find(x => String(x.id) === String(sc.studentId)); return s ? `${escapeHTML(s.name)} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
@@ -1149,11 +1164,19 @@ function showToast(msg) {
 }
 
 // ===================== TICKER (signature live element) =====================
+// يرجّع مباريات البطولة المفتوحة للطلاب من لقطة خام (snapshot) قادمة من Firebase مباشرة
+function extractRevealedMatches(snap) {
+  const t = snap && snap.league && snap.league.tournament;
+  if (!t || !t.matches) return [];
+  const rw = t.revealedWeeks || {};
+  return t.matches.filter(m => rw[m.week]);
+}
+
 function buildTickerMessage(prev, curr) {
   if (!prev) return '📡 متصل بالنادي مباشرة';
   // 1) لاعب جديد سجل هدف
-  const prevMatches = prev.matches || (prev.league && prev.league.matches) || [];
-  const currMatches = curr.matches || (curr.league && curr.league.matches) || [];
+  const prevMatches = extractRevealedMatches(prev);
+  const currMatches = extractRevealedMatches(curr);
   const prevGoals = prevMatches.filter(m=>m.status==='played').reduce((s,m)=>s+(m.scorers||[]).reduce((a,sc)=>a+(sc.goals||0),0),0);
   const currGoals = currMatches.filter(m=>m.status==='played').reduce((s,m)=>s+(m.scorers||[]).reduce((a,sc)=>a+(sc.goals||0),0),0);
   if (currGoals > prevGoals) return '⚽ هدف جديد بدوري الرجال! تابع التفاصيل بتبويب الدوري';
@@ -1210,8 +1233,8 @@ function detectLiveChanges(prev, curr) {
     el.classList.add(newVal > oldVal ? 'pts-flash-up' : 'pts-flash-down');
   });
 
-  const prevMatches = prev.matches || (prev.league && prev.league.matches) || [];
-  const currMatches = curr.matches || (curr.league && curr.league.matches) || [];
+  const prevMatches = extractRevealedMatches(prev);
+  const currMatches = extractRevealedMatches(curr);
   const prevGoals = prevMatches.filter(m=>m.status==='played').reduce((s,m)=>s+(m.scorers||[]).reduce((a,sc)=>a+(sc.goals||0),0),0);
   const currGoals = currMatches.filter(m=>m.status==='played').reduce((s,m)=>s+(m.scorers||[]).reduce((a,sc)=>a+(sc.goals||0),0),0);
   let celebrated = false;
@@ -1288,6 +1311,24 @@ async function startApp() {
     </div>`);
   });
 }
+
+// ===================== تحديث تلقائي دائم =====================
+// هاي صفحة عرض فقط (بدون إدخال بيانات)، فآمن نتحقق دورياً هل في نسخة أحدث على السيرفر
+// ونعيد تحميل الصفحة تلقائياً بدون أي تدخل من الأهل — هيك ما عاد في اعتماد على رقم نسخة
+// الكاش (sw.js) ولا على تذكّر رفعه يدوياً، الصفحة بتحدّث حالها لحالها دايماً.
+let __pageSourceAtLoad = null;
+async function checkForFreshVersion() {
+  try {
+    const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    if (__pageSourceAtLoad === null) { __pageSourceAtLoad = text; return; }
+    if (text !== __pageSourceAtLoad) location.reload();
+  } catch (e) { /* تجاهل أي خطأ شبكة مؤقت */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForFreshVersion();
+});
+setInterval(checkForFreshVersion, 5 * 60 * 1000); // فحص كل 5 دقائق كحد أقصى حتى لو ضلت الصفحة مفتوحة بدون تبديل
 
 startApp();
 </script>
