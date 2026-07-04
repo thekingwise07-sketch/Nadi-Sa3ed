@@ -688,6 +688,18 @@ function attendanceCountOf(studentId) {
   return days.size;
 }
 
+// عدد أيام صلاة الفجر المسجّلة للطالب (يوم واحد بالحد الأقصى لكل تاريخ لتفادي التكرار)
+function fajrCountOf(studentId) {
+  const days = new Set();
+  state.log.forEach(l => {
+    if (l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+        l.meta.change > 0 && l.text && l.text.includes('صلاة الفجر')) {
+      days.add(l.isoDate || new Date(l.date).toISOString().slice(0,10));
+    }
+  });
+  return days.size;
+}
+
 // يوم النادي الفعلي = يوم سُجِّل فيه حضور لأي طالب على الأقل (دليل على انعقاد جلسة)
 function getClubDays() {
   const days = new Set();
@@ -738,6 +750,7 @@ function getStudentBadges(student) {
   if (student.points >= 100) badges.push({ icon: '👑', label: 'نجم النادي' });
   else if (student.points >= 50) badges.push({ icon: '🌟', label: '٥٠+ نقطة' });
   if (attendanceCountOf(student.id) >= 5) badges.push({ icon: '📅', label: 'ملتزم بالحضور' });
+  if (fajrCountOf(student.id) >= 5) badges.push({ icon: '🕌', label: 'مواظب على الفجر' });
   if (quranLogs.length >= 3) badges.push({ icon: '📖', label: 'حافظ مميز' });
   if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة' });
   if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق' });
@@ -919,6 +932,7 @@ function renderStudentCard(s, sortedAll) {
   const avatarHTML = s.photo ? `<img src="${s.photo}">` : initialsOf(s.name);
   const attendance = attendanceCountOf(s.id);
   const goals = goalsOfStudent(s.id);
+  const fajr = fajrCountOf(s.id);
   const badges = getStudentBadges(s);
   const streak = studentStreakOf(s.id);
 
@@ -933,6 +947,7 @@ function renderStudentCard(s, sortedAll) {
       <div><div class="student-card-stat-num">${rankEmoji}</div><div class="student-card-stat-lbl">من ${total} طالب</div></div>
       <div><div class="student-card-stat-num">${attendance}</div><div class="student-card-stat-lbl">حضور</div></div>
       <div><div class="student-card-stat-num">⚽ ${goals}</div><div class="student-card-stat-lbl">هدف</div></div>
+      <div><div class="student-card-stat-num">🕌 ${fajr}</div><div class="student-card-stat-lbl">صلاة الفجر</div></div>
     </div>
     ${badges.length ? `<div class="badges-row">${badges.map(b => `<span class="badge-chip">${b.icon} ${b.label}</span>`).join('')}</div>` : ''}
     <button class="btn-share" onclick="shareStudentCard('${s.id}')">📤 مشاركة البطاقة</button>
