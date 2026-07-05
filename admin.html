@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-04">
+<meta name="app-build" content="2026-07-05-05">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -1535,6 +1535,10 @@ function studentAttendedOn(studentId, isoDate) {
 // طالما الطالب حاضر في كل يوم نادي، يستمر العدّ. أول يوم نادي تغيّب فيه الطالب يوقف العدّ فوراً.
 // لا علاقة لهذا العداد بعدد أيام التقويم بينهما — فقط تتابع أيام النادي الفعلية بدون انقطاع.
 function studentStreakOf(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (student && student.streakOverride !== undefined && student.streakOverride !== null) {
+    return student.streakOverride; // تعديل يدوي من المشرف يتجاوز الحساب التلقائي
+  }
   const clubDays = getClubDays(); // الأحدث أولاً
   let streak = 0;
   for (const day of clubDays) {
@@ -1545,6 +1549,26 @@ function studentStreakOf(studentId) {
     }
   }
   return streak;
+}
+
+// تعديل يدوي لسترايك الحضور (لو صار خطأ بالتسجيل التلقائي)
+async function editStreakManually(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (!student) return;
+  const current = studentStreakOf(studentId);
+  const input = prompt(`عدّل عدد أيام السترايك المتتالية لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
+  if (input === null) return; // إلغاء
+  if (input.trim() === '') {
+    delete student.streakOverride;
+    logEntry('🔄', `${student.name}: رجّع سترايك الحضور للحساب التلقائي`);
+  } else {
+    const val = parseInt(input, 10);
+    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+    student.streakOverride = val;
+    logEntry('✏️', `${student.name}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
+  }
+  save(); render();
+  toast('✅ تم تحديث السترايك');
 }
 
 // النقاط المقترحة لحضور اليوم بناءً على السترايك الحالي للطالب (قبل تسجيل حضور اليوم):
@@ -1705,9 +1729,10 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-num">⚽ ${goals}</div>
           <div class="pmodal-stat-lbl">أهدافه بالدوري</div>
         </div>
-        <div class="pmodal-stat" style="grid-column:1 / -1;${streak >= 2 ? 'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1px solid #ffb74d' : ''}">
+        <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1px solid #ffb74d' : ''}">
+          <button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
-          <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
+          <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}${s.streakOverride !== undefined && s.streakOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
         </div>
         <div class="pmodal-stat soon" style="grid-column:1 / -1">
           <div class="pmodal-stat-num">📖 0</div>

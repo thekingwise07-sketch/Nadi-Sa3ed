@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
+<meta name="app-build" content="2026-07-05-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -236,6 +237,11 @@
   .badge-chip {
     background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px; padding: 3px 9px; font-size: 0.66rem; font-weight: 700; white-space: nowrap;
+  }
+  .badges-row-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .badge-chip-list {
+    background: #eef6f2; color: var(--green-deep); border: 1px solid #cfe8db;
+    border-radius: 7px; padding: 1px 7px; font-size: 0.62rem; font-weight: 700; white-space: nowrap;
   }
 
   .btn-share {
@@ -721,6 +727,10 @@ function studentAttendedOn(studentId, isoDate) {
 
 // سترايك الحضور (أيام نادي متتالية بدون انقطاع، بنفس منطق admin.html)
 function studentStreakOf(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (student && student.streakOverride !== undefined && student.streakOverride !== null) {
+    return student.streakOverride; // تعديل يدوي من المشرف يتجاوز الحساب التلقائي
+  }
   const clubDays = getClubDays();
   let streak = 0;
   for (const day of clubDays) {
@@ -879,6 +889,8 @@ function renderRankList(items, emptyIcon, emptyText) {
       avatarHTML = `<span class="team-color-dot" style="background:${it.color||'#1f6b41'};width:14px;height:14px"></span>`;
     }
     const subDot = it.subDot ? `<span class="team-color-dot" style="background:${it.subDot}"></span>` : '';
+    const badgesHTML = (it.badges && it.badges.length)
+      ? `<div class="badges-row-list">${it.badges.map(b => `<span class="badge-chip-list">${b.icon} ${b.label}</span>`).join('')}</div>` : '';
     return `
     <div class="list-item">
       <div class="list-rank ${rankClass}">${medal}</div>
@@ -886,6 +898,7 @@ function renderRankList(items, emptyIcon, emptyText) {
       <div class="list-info">
         <div class="list-name">${escapeHTML(it.name)}</div>
         <div class="list-sub">${subDot}${escapeHTML(it.sub || '')}</div>
+        ${badgesHTML}
       </div>
       <div class="list-pts"><b class="pts-val" data-kind="${it.kind}" data-id="${it.id}">${it.pts}</b><span>نقطة</span></div>
     </div>`;
@@ -977,6 +990,7 @@ function renderRanking() {
       rank: i+1, kind: 'student', id: s.id, name: s.name, photo: s.photo,
       sub: (() => { const t = teamOf(s); return t ? t.name : '—'; })(),
       subDot: (() => { const t = teamOf(s); return t ? (t.color||'#1f6b41') : null; })(),
+      badges: getStudentBadges(s),
       pts: s.points
     })), '👥', 'لا يوجد طلاب بعد');
   } else {
@@ -1325,21 +1339,25 @@ async function startApp() {
 
 // ===================== تحديث تلقائي دائم =====================
 // هاي صفحة عرض فقط (بدون إدخال بيانات)، فآمن نتحقق دورياً هل في نسخة أحدث على السيرفر
-// ونعيد تحميل الصفحة تلقائياً بدون أي تدخل من الأهل — هيك ما عاد في اعتماد على رقم نسخة
-// الكاش (sw.js) ولا على تذكّر رفعه يدوياً، الصفحة بتحدّث حالها لحالها دايماً.
-let __pageSourceAtLoad = null;
+// ونعيد تحميل الصفحة تلقائياً بدون أي تدخل من الأهل.
+// منقارن رقم إصدار الصفحة المحمّلة فعلياً (من الميتا تاغ الموجود بالـ HTML نفسه، معروف من لحظة
+// التحميل) مع رقم إصدار نسخة السيرفر الحالية. هاي الطريقة أضمن من مقارنة تواريخ السيرفر
+// (GitHub Pages ما يضمن دايماً هيدر Last-Modified)، وما فيها احتمال خطأ حتى لو التبويب قديم جداً.
+// ⚠️ مهم: أي تعديل جديد على parent.html أو admin.html لازم يترافق مع رفع رقم app-build بالـ<head>.
+const CURRENT_BUILD = document.querySelector('meta[name="app-build"]')?.content || '';
 async function checkForFreshVersion() {
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
-    if (__pageSourceAtLoad === null) { __pageSourceAtLoad = text; return; }
-    if (text !== __pageSourceAtLoad) location.reload();
+    const m = text.match(/<meta name="app-build" content="([^"]+)">/);
+    if (m && CURRENT_BUILD && m[1] !== CURRENT_BUILD) location.reload();
   } catch (e) { /* تجاهل أي خطأ شبكة مؤقت */ }
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') checkForFreshVersion();
 });
 setInterval(checkForFreshVersion, 5 * 60 * 1000); // فحص كل 5 دقائق كحد أقصى حتى لو ضلت الصفحة مفتوحة بدون تبديل
+checkForFreshVersion(); // وفحص فوري لحظة فتح الصفحة
 
 startApp();
 </script>
