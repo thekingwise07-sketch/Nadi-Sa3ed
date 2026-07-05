@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-01">
+<meta name="app-build" content="2026-07-05-04">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -570,6 +570,8 @@
     <div class="login-title">النادي الصيفي</div>
     <div class="login-sub">مسجد سعيد أرحيل — نظام النقاط</div>
 
+    <div id="biometric-login-area"></div>
+
     <div class="login-field">
       <label>اسم المشرف</label>
       <input type="text" id="login-name" placeholder="أدخل اسمك" autocomplete="off">
@@ -600,6 +602,7 @@
       <input type="file" accept=".json" onchange="importData(event)" style="display:none">
     </label>
     <button class="btn-header" onclick="showAdminLogin()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)" title="دخول المشرف">🔐</button>
+    <button class="btn-header" onclick="openAccountModal()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)" title="حسابي">👤</button>
   </div>
 </header>
 
@@ -997,24 +1000,26 @@
 
 <script>
 // ===================== تسجيل الدخول =====================
-const ADMINS = {
+// كلمات السر الافتراضية (تُستخدم أول مرة فقط لتهيئة state.adminAuth، وبعدها التحديث يصير من state)
+const DEFAULT_ADMINS = {
   'رائد':        'Raed@2026',
   'يزن':         'Yazan@2026',
   'حذيفة':       'Huzaifa@2026',
   'عبدالرحمن':   'AbdulR@2026'
 };
 
+// كلمات السر الفعلية الحالية — تُقرأ من state (المتزامن عبر Firebase) لو موجودة، وإلا من الافتراضي
+function getAdminPasswords() {
+  return (typeof state !== 'undefined' && state && state.adminAuth) ? state.adminAuth : DEFAULT_ADMINS;
+}
+
 function doLogin() {
   const name = document.getElementById('login-name').value.trim();
   const pass = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
-  if (ADMINS[name] && ADMINS[name] === pass) {
-    document.getElementById('login-screen').style.display = 'none';
-    sessionStorage.setItem('nadyAdmin', name);
-    // تحديث اسم المشرف في الهيدر
-    const sub = document.querySelector('header p');
-    if (sub) sub.textContent = `مرحباً ${name} — النادي الصيفي`;
-    errEl.style.display = 'none';
+  const admins = getAdminPasswords();
+  if (admins[name] && admins[name] === pass) {
+    completeLogin(name);
   } else {
     errEl.style.display = 'block';
     document.getElementById('login-pass').value = '';
@@ -1022,16 +1027,179 @@ function doLogin() {
   }
 }
 
+function completeLogin(name) {
+  document.getElementById('login-screen').style.display = 'none';
+  sessionStorage.setItem('nadyAdmin', name);
+  // تحديث اسم المشرف في الهيدر
+  const sub = document.querySelector('header p');
+  if (sub) sub.textContent = `مرحباً ${name} — النادي الصيفي`;
+  const errEl = document.getElementById('login-error');
+  if (errEl) errEl.style.display = 'none';
+}
+
 function showAdminLogin() {
   document.getElementById('login-screen').style.display = 'flex';
+  renderBiometricLoginButtons();
+}
+
+// ===================== الفتح السريع (بصمة / Face ID) =====================
+// يعتمد على WebAuthn، وهو مربوط بهذا الجهاز والمتصفح فقط — كل مشرف لازم يفعّله لحاله من جهازه.
+// معرف البصمة يُخزَّن محلياً بس (localStorage)، ما إله معنى لو انتقل لجهاز تاني.
+function renderBiometricLoginButtons() {
+  const el = document.getElementById('biometric-login-area');
+  if (!el) return;
+  const names = Object.keys(DEFAULT_ADMINS);
+  const registered = names.filter(n => localStorage.getItem('nadyBiometric_' + n));
+  if (!registered.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="margin-bottom:14px">
+      ${registered.map(n => `<button type="button" class="login-btn" style="background:linear-gradient(135deg,var(--green-mid),var(--green-deep));margin-bottom:8px" onclick="loginWithBiometric('${n}')">🔐 دخول ببصمة ${n}</button>`).join('')}
+      <div style="text-align:center;font-size:0.72rem;color:var(--gray-text);margin-top:2px">— أو دخول بكلمة السر —</div>
+    </div>`;
+}
+
+async function loginWithBiometric(name) {
+  const credId = localStorage.getItem('nadyBiometric_' + name);
+  if (!credId) return;
+  if (!window.PublicKeyCredential) { toast('⚠️ هذا المتصفح ما بيدعم الفتح السريع'); return; }
+  try {
+    const rawId = Uint8Array.from(atob(credId), c => c.charCodeAt(0));
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: rawId, type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    if (assertion) completeLogin(name);
+  } catch (e) {
+    console.log('biometric login error', e);
+    toast('⚠️ تعذّر التحقق بالبصمة — جرّب كلمة السر');
+  }
+}
+
+async function setupBiometric() {
+  const name = sessionStorage.getItem('nadyAdmin');
+  if (!name) return;
+  if (!window.PublicKeyCredential) { toast('⚠️ هذا الجهاز/المتصفح ما بيدعم الفتح السريع'); return; }
+  try {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!available) { toast('⚠️ ما في بصمة أو Face ID مفعّل على هذا الجهاز'); return; }
+
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'النادي الصيفي – مسجد سعيد أرحيل' },
+        user: { id: userId, name: name, displayName: name },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000
+      }
+    });
+    const credId = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+    localStorage.setItem('nadyBiometric_' + name, credId);
+    toast('✅ تم تفعيل الفتح السريع لهذا الجهاز');
+    openAccountModal();
+  } catch (e) {
+    console.log('biometric setup error', e);
+    toast('⚠️ تعذّر تفعيل الفتح السريع');
+  }
+}
+
+function removeBiometric() {
+  const name = sessionStorage.getItem('nadyAdmin');
+  if (!name) return;
+  localStorage.removeItem('nadyBiometric_' + name);
+  toast('🗑 تم إلغاء الفتح السريع من هذا الجهاز');
+  openAccountModal();
+}
+
+// ===================== حساب المشرف: تغيير كلمة السر + إدارة الفتح السريع =====================
+function openAccountModal() {
+  const name = sessionStorage.getItem('nadyAdmin');
+  if (!name) { showAdminLogin(); return; }
+  let backdrop = document.getElementById('cmodal-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'cmodal-backdrop';
+    backdrop.className = 'cmodal-backdrop';
+    document.body.appendChild(backdrop);
+  }
+  backdrop.onclick = (e) => { if (e.target === backdrop) closeAccountModal(); };
+  renderAccountModalContent(backdrop, name);
+  requestAnimationFrame(() => backdrop.classList.add('show'));
+}
+
+function renderAccountModalContent(backdrop, name) {
+  const hasBiometric = !!localStorage.getItem('nadyBiometric_' + name);
+  const biometricSupported = !!window.PublicKeyCredential;
+  backdrop.innerHTML = `
+    <div class="cmodal-box" style="text-align:right">
+      <div class="cmodal-icon" style="text-align:center">👤</div>
+      <div class="cmodal-msg" style="text-align:center">حسابك: ${name}</div>
+
+      <div class="section-label">🔑 تغيير كلمة السر</div>
+      <input type="password" id="acc-old-pass" placeholder="كلمة السر الحالية" autocomplete="off">
+      <input type="password" id="acc-new-pass" placeholder="كلمة السر الجديدة (٦ أحرف فأكثر)" autocomplete="off">
+      <input type="password" id="acc-new-pass2" placeholder="تأكيد كلمة السر الجديدة" autocomplete="off">
+      <button class="btn btn-gold" style="margin-bottom:18px" onclick="changeMyPassword()">حفظ كلمة السر الجديدة</button>
+
+      <div class="section-label">🔐 الفتح السريع (بصمة / Face ID)</div>
+      <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        بيشتغل بس على هالجهاز والمتصفح الحالي. لازم تفعّله من كل جهاز تستخدمه لحاله.
+      </p>
+      ${!biometricSupported
+        ? `<div style="background:#fdecea;color:#c62828;border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700">⚠️ هالجهاز أو المتصفح ما بيدعم الفتح السريع</div>`
+        : hasBiometric
+          ? `<div style="background:#e8f5ee;color:var(--green-deep);border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700;margin-bottom:10px">✅ مفعّل على هذا الجهاز</div>
+             <button class="btn btn-sm btn-danger" style="width:auto" onclick="removeBiometric()">إلغاء التفعيل من هذا الجهاز</button>`
+          : `<button class="btn" onclick="setupBiometric()">تفعيل الفتح السريع على هذا الجهاز</button>`
+      }
+
+      <div class="cmodal-btns" style="margin-top:18px">
+        <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
+      </div>
+    </div>`;
+}
+
+function closeAccountModal() {
+  const backdrop = document.getElementById('cmodal-backdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('show');
+  setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+}
+
+function changeMyPassword() {
+  const name = sessionStorage.getItem('nadyAdmin');
+  if (!name) return;
+  const oldPass = document.getElementById('acc-old-pass').value;
+  const newPass = document.getElementById('acc-new-pass').value;
+  const newPass2 = document.getElementById('acc-new-pass2').value;
+  const admins = getAdminPasswords();
+
+  if (admins[name] !== oldPass) { toast('⚠️ كلمة السر الحالية غلط'); return; }
+  if (!newPass || newPass.length < 6) { toast('⚠️ كلمة السر الجديدة لازم تكون ٦ أحرف عالأقل'); return; }
+  if (newPass !== newPass2) { toast('⚠️ كلمة السر الجديدة وتأكيدها مش متطابقين'); return; }
+
+  if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS };
+  state.adminAuth[name] = newPass;
+  logEntry('🔑', `${name} غيّر كلمة السر الخاصة فيه`);
+  save();
+  toast('✅ تم تغيير كلمة السر بنجاح');
+  closeAccountModal();
 }
 
 // في admin.html: شاشة الدخول ظاهرة دائماً عند الفتح
-// المشرف يجب أن يسجل دخوله يدوياً
+// المشرف يجب أن يسجل دخوله يدوياً (بكلمة السر أو بالفتح السريع)
 (function() {
+  renderBiometricLoginButtons();
   // إذا كانت الجلسة محفوظة من قبل في نفس التبويب فقط
   const saved = sessionStorage.getItem('nadyAdmin');
-  if (saved && ADMINS[saved]) {
+  if (saved && DEFAULT_ADMINS[saved] !== undefined) {
     document.getElementById('login-screen').style.display = 'none';
   }
 })();
@@ -1056,6 +1224,7 @@ function ensureFields() {
   if (!state.weeks) state.weeks = [];
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
   if (!state.rulesConfig) state.rulesConfig = defaultRulesConfig();
+  if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
@@ -3250,51 +3419,89 @@ function renderMatchesLists() {
 // ===================== بطولة دوري الرجال (موسم منظَّم على 4 أسابيع) =====================
 
 // توليد جدول "الكل ضد الكل" (round-robin) لقائمة فرق، وتوزيعه على 4 أسابيع بالتساوي
-function generateRoundRobinSchedule(teamIds, startDateISO) {
-  let ids = teamIds.slice();
-  const byeId = null;
-  if (ids.length % 2 !== 0) ids.push(byeId); // فريق وهمي "استراحة" لو عدد الفرق فردي
+// خلط عشوائي للمصفوفة (Fisher-Yates)
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-  const n = ids.length;
-  const half = n / 2;
-  const weeksCount = 4;
-  const matchesPerTeamPerWeek = 2; // كل فريق يلعب مباراتين بكل أسبوع
-  const roundsCount = weeksCount * matchesPerTeamPerWeek; // إجمالي الجولات على مدى البطولة كاملة
-  const rounds = [];
-  let arr = ids.slice();
+// يبني مباريات أسبوع واحد فقط بحيث يلعب كل فريق مباراتين بالضبط (ترتيب دائري عشوائي)
+function generateWeekMatches(teamIds, weekNum, startDateISO) {
+  const n = teamIds.length;
+  const start = new Date(startDateISO);
+  const matches = [];
+  if (n < 2) return matches;
 
-  for (let r = 0; r < roundsCount; r++) {
-    const roundPairs = [];
-    for (let i = 0; i < half; i++) {
-      const a = arr[i], b = arr[n - 1 - i];
-      if (a !== byeId && b !== byeId) roundPairs.push([a, b]);
+  if (n === 2) {
+    const [a, b] = teamIds;
+    for (let k = 0; k < 2; k++) {
+      const d = new Date(start); d.setDate(start.getDate() + (weekNum - 1) * 7 + k * 2);
+      matches.push({
+        id: Date.now() + Math.random(), teamAId: a, teamBId: b, date: d.toISOString().slice(0,10),
+        status: 'scheduled', scoreA: 0, scoreB: 0, scorers: [], week: weekNum, tournament: true
+      });
     }
-    rounds.push(roundPairs);
-    // تدوير الفرق (الأول يبقى ثابتاً، الباقي يدور) — خوارزمية round-robin القياسية
-    // لو تجاوزنا دورة كاملة (n-1 جولة)، بترجع تتكرر نفس المواجهات تلقائياً وهاد متوقع
-    arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
+    return matches;
   }
 
-  // كل أسبوع فيه بالضبط جولتين (مباراتين لكل فريق)، بفاصل يومين بينهم داخل نفس الأسبوع
-  const start = new Date(startDateISO || new Date().toISOString().slice(0,10));
-  const matches = [];
-
-  rounds.forEach((pairs, roundIdx) => {
-    const weekIdx = Math.floor(roundIdx / matchesPerTeamPerWeek);
-    const roundInWeek = roundIdx % matchesPerTeamPerWeek;
-    const matchDate = new Date(start);
-    matchDate.setDate(start.getDate() + weekIdx * 7 + roundInWeek * 2);
-    const dateISO = matchDate.toISOString().slice(0,10);
-    pairs.forEach(([a, b]) => {
-      matches.push({
-        id: Date.now() + Math.random(),
-        teamAId: a, teamBId: b, date: dateISO, status: 'scheduled',
-        scoreA: 0, scoreB: 0, scorers: [], week: weekIdx + 1, tournament: true
-      });
+  const order = shuffleArray(teamIds);
+  for (let i = 0; i < n; i++) {
+    const a = order[i], b = order[(i + 1) % n];
+    const d = new Date(start); d.setDate(start.getDate() + (weekNum - 1) * 7 + i);
+    matches.push({
+      id: Date.now() + Math.random(), teamAId: a, teamBId: b, date: d.toISOString().slice(0,10),
+      status: 'scheduled', scoreA: 0, scoreB: 0, scorers: [], week: weekNum, tournament: true
     });
+  }
+  return matches;
+}
+
+// يبني جدول مباريات يضمن مباراتين بالضبط لكل فريق بكل أسبوع، بغض النظر عن عدد الفرق (زوجي أو فردي).
+// الفكرة: كل أسبوع نرتب الفرق بترتيب دائري عشوائي، وكل فريق يلعب "جاريه" على يمينه ويساره
+// بالدائرة — هيك أي فريق يشارك بمباراتين بالضبط، والترتيب يتغيّر عشوائياً كل أسبوع لتنويع المباريات.
+function generateRoundRobinSchedule(teamIds, startDateISO) {
+  const weeksCount = 4;
+  const start = startDateISO || new Date().toISOString().slice(0,10);
+  let matches = [];
+  for (let w = 1; w <= weeksCount; w++) matches = matches.concat(generateWeekMatches(teamIds, w, start));
+  return matches;
+}
+
+// إصلاح جدول الأسابيع القادمة بدون المساس بأي أسبوع فيه مباراة ملعوبة فعلاً.
+// أي أسبوع ما فيه ولا نتيجة مسجّلة يُعاد توليده بالكامل بالخوارزمية الصحيحة الجديدة (مباراتين لكل فريق).
+async function fixFutureWeeksSchedule() {
+  const t = state.league.tournament;
+  if (!t) return;
+
+  const playedWeeks = new Set(t.matches.filter(m => m.status === 'played').map(m => String(m.week)));
+  const weeksToRegenerate = [];
+  for (let w = 1; w <= 4; w++) if (!playedWeeks.has(String(w))) weeksToRegenerate.push(w);
+
+  if (!weeksToRegenerate.length) {
+    toast('✅ كل الأسابيع فيها نتائج ملعوبة، ما في شي يحتاج إصلاح');
+    return;
+  }
+
+  const proceed = await customConfirm(
+    `رح تنحذف كل المباريات "غير الملعوبة" من الأسابيع (${weeksToRegenerate.join('، ')}) وتنعاد جدولتها بشكل متوازن (مباراتين بالضبط لكل فريق).\n\nأي أسبوع فيه نتيجة ملعوبة فعلاً (متل الأسبوع الأول عندك) ما رح ينحذف أو يتغيّر إطلاقاً.\n\nمتأكد؟`,
+    '🔄'
+  );
+  if (!proceed) return;
+
+  const keptMatches = t.matches.filter(m => playedWeeks.has(String(m.week)));
+  let newMatches = [];
+  weeksToRegenerate.forEach(w => {
+    newMatches = newMatches.concat(generateWeekMatches(t.teamIds, w, t.startDate));
   });
 
-  return matches;
+  t.matches = [...keptMatches, ...newMatches];
+  logEntry('🔄', `إعادة توليد جدول البطولة للأسابيع (${weeksToRegenerate.join('، ')}) بشكل متوازن — مباراتين لكل فريق`);
+  save(); render();
+  toast('✅ تم إصلاح الجدول');
 }
 
 function renderTournamentTeamPicker() {
@@ -3467,9 +3674,12 @@ function renderTournament() {
   }).join('');
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <span style="font-size:0.8rem;color:var(--gray-text);font-weight:700">🏆 دوري نشط — ${t.teamIds.length} فرق</span>
-      <button class="btn btn-sm" style="width:auto;background:#fdecea;color:#c62828;border:2px solid #e57373" onclick="endTournament()">🏁 إنهاء الدوري</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12;border:2px solid #ffd54f" onclick="fixFutureWeeksSchedule()">🔄 إصلاح جدول الأسابيع القادمة</button>
+        <button class="btn btn-sm" style="width:auto;background:#fdecea;color:#c62828;border:2px solid #e57373" onclick="endTournament()">🏁 إنهاء الدوري</button>
+      </div>
     </div>
     <div class="section-label">جدول الترتيب</div>
     ${standingsHTML || '<div class="empty" style="padding:10px"><p>لا توجد نتائج بعد</p></div>'}
