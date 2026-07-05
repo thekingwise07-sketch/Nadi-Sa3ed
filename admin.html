@@ -30,6 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
+<meta name="app-build" content="2026-07-05-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -2827,12 +2828,13 @@ function renderLog() {
 
   el.innerHTML = filtered.slice(0, 80).map(l => {
     const adminTag = l.adminName ? `<span style="background:#e8f5ee;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
+    const dateLabel = l.isoDate ? new Date(l.isoDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '';
     return `<div class="log-item" style="justify-content:space-between">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div class="log-icon">${l.icon}</div>
         <div>
           <div>${l.text}</div>
-          <div class="log-time">${adminTag}${l.time}</div>
+          <div class="log-time">${adminTag}${dateLabel ? dateLabel + ' • ' : ''}${l.time}</div>
         </div>
       </div>
       <button class="btn btn-sm btn-danger" style="width:auto;flex-shrink:0" onclick="removeLogEntry(${l.id})">🗑</button>
@@ -3254,8 +3256,10 @@ function generateRoundRobinSchedule(teamIds, startDateISO) {
   if (ids.length % 2 !== 0) ids.push(byeId); // فريق وهمي "استراحة" لو عدد الفرق فردي
 
   const n = ids.length;
-  const roundsCount = n - 1; // عدد الجولات اللازمة لملاقاة كل الفرق بعضها مرة واحدة
   const half = n / 2;
+  const weeksCount = 4;
+  const matchesPerTeamPerWeek = 2; // كل فريق يلعب مباراتين بكل أسبوع
+  const roundsCount = weeksCount * matchesPerTeamPerWeek; // إجمالي الجولات على مدى البطولة كاملة
   const rounds = [];
   let arr = ids.slice();
 
@@ -3267,29 +3271,19 @@ function generateRoundRobinSchedule(teamIds, startDateISO) {
     }
     rounds.push(roundPairs);
     // تدوير الفرق (الأول يبقى ثابتاً، الباقي يدور) — خوارزمية round-robin القياسية
+    // لو تجاوزنا دورة كاملة (n-1 جولة)، بترجع تتكرر نفس المواجهات تلقائياً وهاد متوقع
     arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
   }
 
-  // توزيع الجولات على 4 أسابيع بأقرب تساوٍ ممكن (كل جولة فيها كل الفرق تلعب بدون تعارض)
-  // لو عدد الجولات أكثر من 4، توضع جولات إضافية بنفس الأسبوع لكن بتاريخ مختلف داخله (لا تعارض لأي فريق بنفس اليوم)
-  const weeksCount = 4;
+  // كل أسبوع فيه بالضبط جولتين (مباراتين لكل فريق)، بفاصل يومين بينهم داخل نفس الأسبوع
   const start = new Date(startDateISO || new Date().toISOString().slice(0,10));
   const matches = [];
 
-  const roundsPerWeek = Array(weeksCount).fill(0);
-  for (let i = 0; i < rounds.length; i++) roundsPerWeek[i % weeksCount]++;
-  const roundToWeek = [];
-  let ri = 0;
-  for (let w = 0; w < weeksCount; w++) {
-    for (let k = 0; k < roundsPerWeek[w]; k++) { roundToWeek[ri] = w; ri++; }
-  }
-
   rounds.forEach((pairs, roundIdx) => {
-    const weekIdx = roundToWeek[roundIdx];
-    let roundInWeek = 0;
-    for (let i = 0; i < roundIdx; i++) if (roundToWeek[i] === weekIdx) roundInWeek++;
+    const weekIdx = Math.floor(roundIdx / matchesPerTeamPerWeek);
+    const roundInWeek = roundIdx % matchesPerTeamPerWeek;
     const matchDate = new Date(start);
-    matchDate.setDate(start.getDate() + weekIdx * 7 + roundInWeek * 2); // فاصل يومين بين جولات نفس الأسبوع لو لزم
+    matchDate.setDate(start.getDate() + weekIdx * 7 + roundInWeek * 2);
     const dateISO = matchDate.toISOString().slice(0,10);
     pairs.forEach(([a, b]) => {
       matches.push({
@@ -3588,16 +3582,16 @@ startApp();
 
 // ===================== تنبيه تحديث لطيف (بدون تحديث قسري) =====================
 // بما إنه هاي صفحة فيها إدخال بيانات، ما منعمل reload قسري قد يضيع تعديل لسا ما انحفظ.
-// بس منفحص دورياً هل في نسخة أحدث على السيرفر، ولو في، منظهر شريط صغير
-// بالأسفل يخلي المشرف يقرر إيمتى يحدّث — بدل الاعتماد على تذكّر رفع رقم نسخة الكاش يدوياً.
-let __adminSourceAtLoad = null;
+// منقارن رقم إصدار الصفحة المحمّلة فعلياً (ميتا تاغ app-build) مع رقم إصدار نسخة السيرفر.
+// ⚠️ مهم: أي تعديل جديد على admin.html أو parent.html لازم يترافق مع رفع رقم app-build بالـ<head>.
+const CURRENT_BUILD = document.querySelector('meta[name="app-build"]')?.content || '';
 async function checkForAdminUpdate() {
   if (isPublicView) return;
   try {
     const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
     const text = await res.text();
-    if (__adminSourceAtLoad === null) { __adminSourceAtLoad = text; return; }
-    if (text !== __adminSourceAtLoad && !document.getElementById('update-banner')) {
+    const m = text.match(/<meta name="app-build" content="([^"]+)">/);
+    if (m && CURRENT_BUILD && m[1] !== CURRENT_BUILD && !document.getElementById('update-banner')) {
       document.body.insertAdjacentHTML('beforeend', `
         <div id="update-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a4a2e;color:white;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Tajawal',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 -4px 14px rgba(0,0,0,0.2)">
           <span>🔄 في تحديث جديد للنظام</span>
@@ -3610,6 +3604,7 @@ setInterval(checkForAdminUpdate, 3 * 60 * 1000); // فحص كل 3 دقائق
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') checkForAdminUpdate();
 });
+checkForAdminUpdate(); // وفحص فوري لحظة فتح الصفحة
 
 // Register Service Worker
 if ('serviceWorker' in navigator && !isPublicView) {
