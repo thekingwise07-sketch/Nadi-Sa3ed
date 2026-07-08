@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-01">
+<meta name="app-build" content="2026-07-05-02">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -684,6 +684,10 @@ function initialsOf(name) {
 function teamOf(student) { return state.teams.find(t => String(t.id) === String(student.teamId)); }
 
 function attendanceCountOf(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (student && student.attendanceOverride !== undefined && student.attendanceOverride !== null) {
+    return student.attendanceOverride;
+  }
   const days = new Set();
   state.log.forEach(l => {
     if (l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
@@ -765,6 +769,7 @@ function getStudentBadges(student) {
   if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة' });
   if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق' });
   if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً' });
+  (student.customBadges || []).forEach(b => badges.push({ icon: b.icon, label: b.label }));
   return badges;
 }
 
