@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-09">
+<meta name="app-build" content="2026-07-05-10">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -3544,8 +3544,16 @@ function shuffleArray(arr) {
   return a;
 }
 
-// يبني مباريات أسبوع واحد فقط بحيث يلعب كل فريق مباراتين بالضبط (ترتيب دائري عشوائي)
-function generateWeekMatches(teamIds, weekNum, startDateISO) {
+// مفتاح موحّد لأي زوج فرق (بغض النظر عن ترتيبهم)، يستخدم لتتبّع المواجهات اللي سبق حصولها
+function pairKey(a, b) {
+  return [String(a), String(b)].sort().join('|');
+}
+
+// يبني مباريات أسبوع واحد فقط بحيث يلعب كل فريق مباراتين بالضبط (ترتيب دائري عشوائي).
+// avoidPairs: Set اختياري لمواجهات سبق حصولها — الدالة بتجرب كذا ترتيب عشوائي وتختار
+// الأقل تكراراً لهاي المواجهات (قدر الإمكان، بدون ضمان مطلق خصوصاً لو عدد الفرق قليل جداً)
+function generateWeekMatches(teamIds, weekNum, startDateISO, avoidPairs) {
+  avoidPairs = avoidPairs || new Set();
   const n = teamIds.length;
   const start = new Date(startDateISO);
   const matches = [];
@@ -3563,9 +3571,21 @@ function generateWeekMatches(teamIds, weekNum, startDateISO) {
     return matches;
   }
 
-  const order = shuffleArray(teamIds);
+  // نجرب عدة ترتيبات عشوائية ونختار الترتيب اللي فيه أقل عدد مواجهات متكررة من avoidPairs
+  let bestOrder = null, bestScore = Infinity;
+  const attempts = 40;
+  for (let t = 0; t < attempts; t++) {
+    const order = shuffleArray(teamIds);
+    let score = 0;
+    for (let i = 0; i < n; i++) {
+      if (avoidPairs.has(pairKey(order[i], order[(i + 1) % n]))) score++;
+    }
+    if (score < bestScore) { bestScore = score; bestOrder = order; }
+    if (bestScore === 0) break; // لقينا ترتيب بدون أي تكرار، ما في داعي نكمل نجرب
+  }
+
   for (let i = 0; i < n; i++) {
-    const a = order[i], b = order[(i + 1) % n];
+    const a = bestOrder[i], b = bestOrder[(i + 1) % n];
     const d = new Date(start); d.setDate(start.getDate() + (weekNum - 1) * 7 + i);
     matches.push({
       id: Date.now() + Math.random(), teamAId: a, teamBId: b, date: d.toISOString().slice(0,10),
@@ -3577,17 +3597,23 @@ function generateWeekMatches(teamIds, weekNum, startDateISO) {
 
 // يبني جدول مباريات يضمن مباراتين بالضبط لكل فريق بكل أسبوع، بغض النظر عن عدد الفرق (زوجي أو فردي).
 // الفكرة: كل أسبوع نرتب الفرق بترتيب دائري عشوائي، وكل فريق يلعب "جاريه" على يمينه ويساره
-// بالدائرة — هيك أي فريق يشارك بمباراتين بالضبط، والترتيب يتغيّر عشوائياً كل أسبوع لتنويع المباريات.
+// بالدائرة — هيك أي فريق يشارك بمباراتين بالضبط. المواجهات تتراكم أسبوع بعد أسبوع لتفادي تكرارها.
 function generateRoundRobinSchedule(teamIds, startDateISO) {
   const weeksCount = 4;
   const start = startDateISO || new Date().toISOString().slice(0,10);
   let matches = [];
-  for (let w = 1; w <= weeksCount; w++) matches = matches.concat(generateWeekMatches(teamIds, w, start));
+  const usedPairs = new Set();
+  for (let w = 1; w <= weeksCount; w++) {
+    const weekMatches = generateWeekMatches(teamIds, w, start, usedPairs);
+    weekMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId)));
+    matches = matches.concat(weekMatches);
+  }
   return matches;
 }
 
 // إصلاح جدول الأسابيع القادمة بدون المساس بأي أسبوع فيه مباراة ملعوبة فعلاً.
-// أي أسبوع ما فيه ولا نتيجة مسجّلة يُعاد توليده بالكامل بالخوارزمية الصحيحة الجديدة (مباراتين لكل فريق).
+// أي أسبوع ما فيه ولا نتيجة مسجّلة يُعاد توليده بالكامل بالخوارزمية الصحيحة الجديدة (مباراتين لكل فريق)،
+// مع محاولة قدر الإمكان تفادي تكرار المواجهات اللي سبق حصولها بالأسابيع الملعوبة أو المُعاد توليدها.
 async function fixFutureWeeksSchedule() {
   const t = state.league.tournament;
   if (!t) return;
@@ -3602,19 +3628,26 @@ async function fixFutureWeeksSchedule() {
   }
 
   const proceed = await customConfirm(
-    `رح تنحذف كل المباريات "غير الملعوبة" من الأسابيع (${weeksToRegenerate.join('، ')}) وتنعاد جدولتها بشكل متوازن (مباراتين بالضبط لكل فريق).\n\nأي أسبوع فيه نتيجة ملعوبة فعلاً (متل الأسبوع الأول عندك) ما رح ينحذف أو يتغيّر إطلاقاً.\n\nمتأكد؟`,
+    `رح تنحذف كل المباريات "غير الملعوبة" من الأسابيع (${weeksToRegenerate.join('، ')}) وتنعاد جدولتها بشكل متوازن (مباراتين بالضبط لكل فريق)، مع محاولة تفادي تكرار مواجهات سبق حصولها بالأسابيع السابقة قدر الإمكان.\n\nأي أسبوع فيه نتيجة ملعوبة فعلاً (متل الأسبوع الأول عندك) ما رح ينحذف أو يتغيّر إطلاقاً.\n\nمتأكد؟`,
     '🔄'
   );
   if (!proceed) return;
 
   const keptMatches = t.matches.filter(m => playedWeeks.has(String(m.week)));
+
+  // نجمع كل المواجهات اللي سبق حصولها بالأسابيع المحفوظة، لنتفاداها قدر الإمكان بالأسابيع الجديدة
+  const usedPairs = new Set();
+  keptMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId)));
+
   let newMatches = [];
   weeksToRegenerate.forEach(w => {
-    newMatches = newMatches.concat(generateWeekMatches(t.teamIds, w, t.startDate));
+    const weekMatches = generateWeekMatches(t.teamIds, w, t.startDate, usedPairs);
+    weekMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId))); // تراكمي حتى الأسابيع الجديدة ما تتكرر مع بعضها
+    newMatches = newMatches.concat(weekMatches);
   });
 
   t.matches = [...keptMatches, ...newMatches];
-  logEntry('🔄', `إعادة توليد جدول البطولة للأسابيع (${weeksToRegenerate.join('، ')}) بشكل متوازن — مباراتين لكل فريق`);
+  logEntry('🔄', `إعادة توليد جدول البطولة للأسابيع (${weeksToRegenerate.join('، ')}) بشكل متوازن — مباراتين لكل فريق، مع تقليل تكرار المواجهات`);
   save(); render();
   toast('✅ تم إصلاح الجدول');
 }
