@@ -30,37 +30,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-10">
+<meta name="app-build" content="2026-07-05-12">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1a4a2e">
+<meta name="theme-color" content="#0c3a2f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="نقاط النادي">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Outfit:wght@500;700;800&display=swap');
 
   :root {
-    --green-deep: #123524;
-    --green-mid:  #2d7a4f;
-    --green-light:#4caf7d;
-    --green-glow: #e8f5ee;
-    --gold:       #c8941a;
-    --gold-light: #f0c84a;
-    --gold-soft:  #fff3d6;
-    --cream:      #faf6ee;
-    --white:      #ffffff;
-    --gray-soft:  #f0ede6;
-    --gray-text:  #5c5c5c;
+    /* === لوحة "فانوس المسجد" — ليل هادئ، نحاس دافئ، بلاط هندسي === */
+    --green-deep: #0c3a2f;   /* ليل عميق (Ink Night) */
+    --green-mid:  #157a68;   /* زمرّد المئذنة (Minaret Teal) */
+    --green-light:#2fae8f;   /* توهج زمردي (Emerald Glow) */
+    --green-glow: #e6f4ef;   /* خلفية زمردية فاتحة */
+    --gold:       #c6901f;   /* نحاس الفانوس (Lantern Brass) */
+    --gold-light: #eab648;   /* ذهب دافئ */
+    --gold-soft:  #fbecc9;   /* خلفية ذهبية ناعمة */
+    --cream:      #f7f1e3;   /* ورق رملي (Sand Paper) */
+    --white:      #fffdf8;
+    --gray-soft:  #efe8d8;
+    --gray-text:  #5c5850;
     --radius-lg:  20px;
     --radius-md:  14px;
     --radius-sm:  10px;
-    --shadow:     0 4px 20px rgba(18,53,36,0.10);
-    --shadow-lift:0 14px 34px rgba(18,53,36,0.18);
+    --shadow:     0 4px 20px rgba(12,58,47,0.10);
+    --shadow-lift:0 14px 34px rgba(12,58,47,0.18);
     --ease: cubic-bezier(.22,.9,.35,1);
+    --font-display: 'Tajawal', sans-serif;
+    --font-numeric: 'Outfit', 'Tajawal', sans-serif; /* أرقام النقاط والترتيب — طابع لوحة نتائج */
   }
+
+  /* الأرقام (نقاط، ترتيب، إحصائيات) بخط هندسي مميز يعطي إحساس لوحة النتائج */
+  .pts-val, .rank-pts, .stat-num, .pmodal-stat-num, .student-card-stat-num,
+  .team-count, .list-pts b { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -86,7 +93,16 @@
     box-shadow: var(--shadow);
     position: relative;
     z-index: 5;
+    overflow: hidden;
   }
+  header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23eab648' stroke-opacity='0.08' stroke-width='1'%3E%3Crect x='12' y='12' width='40' height='40'/%3E%3Crect x='12' y='12' width='40' height='40' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 64px 64px;
+    pointer-events: none;
+  }
+  header > * { position: relative; z-index: 1; }
   header h1 { font-size: 1.28rem; font-weight: 900; letter-spacing: -0.5px; }
   header p  { font-size: 0.78rem; opacity: 0.82; margin-top: 2px; }
   .header-btns { display: flex; gap: 6px; align-items: center; }
@@ -98,7 +114,7 @@
   }
   .btn-header:active { transform: scale(0.9); }
   .btn-header:hover { filter: brightness(1.08); }
-  .btn-export { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 3px 10px rgba(200,148,26,0.4); }
+  .btn-export { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 3px 10px rgba(198,144,31,0.4); }
   .btn-import { background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.28); }
 
   /* === TABS === */
@@ -179,7 +195,7 @@
   .btn-gold { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 4px 14px rgba(200,148,26,0.28); }
   .btn-gold:hover { transform: translateY(-1px); }
   .btn-sm { padding: 6px 14px; font-size: 0.8rem; width: auto; border-radius: 8px; }
-  .btn-danger { background: #e53935; color: white; }
+  .btn-danger { background: #b8462f; color: white; }
   .btn:active { transform: scale(0.98); }
 
   /* === RULES EDIT UI === */
@@ -192,7 +208,7 @@
   .rule-edit-row input { margin-bottom: 0; }
   .btn-icon-danger {
     width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; border: none;
-    background: #fdecea; color: #c62828; cursor: pointer; font-size: 0.9rem;
+    background: #f8e6df; color: #b8462f; cursor: pointer; font-size: 0.9rem;
   }
   .rules-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .btn-edit-rules {
@@ -218,7 +234,7 @@
     transition: all 0.2s; color: var(--green-deep);
   }
   .cat-btn.selected {
-    border-color: var(--green-mid); background: #e8f5ee; color: var(--green-mid);
+    border-color: var(--green-mid); background: #e6f4ef; color: var(--green-mid);
   }
   .cat-btn .cat-icon { font-size: 1.3rem; display: block; margin-bottom: 3px; }
 
@@ -229,7 +245,7 @@
     background: var(--gray-soft); margin-bottom: 8px;
     transition: all 0.2s;
   }
-  .student-item:hover { background: #e8f5ee; }
+  .student-item:hover { background: #e6f4ef; }
   .student-info { display: flex; align-items: center; gap: 10px; }
   .student-avatar {
     width: 38px; height: 38px; border-radius: 50%;
@@ -262,8 +278,8 @@
     padding: 12px 14px; border-radius: 12px;
     background: var(--gray-soft); margin-bottom: 8px;
   }
-  .rank-item:nth-child(1) { background: linear-gradient(135deg, #fff8e1, #fff3c4); }
-  .rank-item:nth-child(2) { background: linear-gradient(135deg, #f5f5f5, #eeeeee); }
+  .rank-item:nth-child(1) { background: linear-gradient(135deg, #fbecc9, #fff3c4); }
+  .rank-item:nth-child(2) { background: linear-gradient(135deg, #f3ede0, #e9e2d2eee); }
   .rank-item:nth-child(3) { background: linear-gradient(135deg, #fbe9e7, #ffccbc); }
   .rank-badge {
     width: 32px; height: 32px; border-radius: 50%;
@@ -305,7 +321,7 @@
   /* === HISTORY LOG === */
   .log-item {
     display: flex; align-items: flex-start; gap: 10px;
-    padding: 10px 0; border-bottom: 1px solid #eee;
+    padding: 10px 0; border-bottom: 1px solid #e9e2d2;
     font-size: 0.82rem;
   }
   .log-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
@@ -334,7 +350,7 @@
     margin-bottom: 6px; margin-top: 4px;
   }
 
-  .divider { height: 1px; background: #eee; margin: 14px 0; }
+  .divider { height: 1px; background: #e9e2d2; margin: 14px 0; }
 
   .team-color-dot {
     width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: 6px;
@@ -397,12 +413,12 @@
 
   .bulk-pick-btn {
     padding: 7px 12px; border-radius: 20px; border: 2px solid var(--green-mid);
-    background: #e8f5ee; font-family: 'Tajawal', sans-serif;
+    background: #e6f4ef; font-family: 'Tajawal', sans-serif;
     font-size: 0.82rem; font-weight: 700; cursor: pointer;
     color: var(--green-deep); transition: all 0.15s;
   }
   .bulk-pick-btn.excluded {
-    background: #fdecea; border-color: #e57373; color: #c62828;
+    background: #f8e6df; border-color: #cf8a78; color: #b8462f;
     text-decoration: line-through;
   }
 
@@ -425,7 +441,7 @@
   }
   @keyframes ptsPulseDown {
     0%   { transform: scale(1);    color: var(--green-mid); }
-    30%  { transform: scale(1.2);  color: #e53935; }
+    30%  { transform: scale(1.2);  color: #b8462f; }
     100% { transform: scale(1);    color: var(--green-mid); }
   }
   .pts-flash-up   { animation: ptsPulse 0.9s ease; display: inline-block; }
@@ -475,11 +491,11 @@
   /* === قسم تنبيهات المشرفين === */
   .alert-item {
     display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    background: #fff8e1; border: 1px solid #ffe082; border-radius: 12px; margin-bottom: 8px;
+    background: #fbecc9; border: 1px solid #eab648; border-radius: 12px; margin-bottom: 8px;
   }
   .alert-item .alert-icon { font-size: 1.3rem; flex-shrink: 0; }
-  .alert-item .alert-text { font-size: 0.85rem; color: #5d4900; line-height: 1.5; }
-  .alert-item .alert-text b { color: #1a4a2e; }
+  .alert-item .alert-text { font-size: 0.85rem; color: #5c4512; line-height: 1.5; }
+  .alert-item .alert-text b { color: #0c3a2f; }
 
   /* === موديل التأكيد المخصص === */
   .cmodal-backdrop {
@@ -500,7 +516,7 @@
   .cmodal-msg { font-size: 0.95rem; color: var(--text-dark); line-height: 1.7; white-space: pre-line; margin-bottom: 18px; }
   .cmodal-btns { display: flex; flex-direction: column; gap: 8px; }
   .cmodal-btn { border: none; border-radius: 12px; padding: 11px; font-size: 0.92rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-  .cmodal-btn-danger { background: #e53935; color: white; }
+  .cmodal-btn-danger { background: #b8462f; color: white; }
   .cmodal-btn-secondary { background: white; color: var(--text-dark); border: 1.5px solid #ddd; }
 
   /* === تأثير الاحتفال (كونفيتي بسيط) === */
@@ -519,29 +535,51 @@
   /* === شاشة تسجيل الدخول === */
   #login-screen {
     position: fixed; inset: 0; z-index: 9999;
-    background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%);
+    background:
+      linear-gradient(160deg, var(--green-deep) 0%, #0a2b23 100%);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  #login-screen::before {
+    /* بلاط هندسي ثماني النجوم — إشارة لزخرفة المساجد التقليدية، بشفافية خفيفة جداً */
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23eab648' stroke-opacity='0.09' stroke-width='1'%3E%3Crect x='12' y='12' width='40' height='40'/%3E%3Crect x='12' y='12' width='40' height='40' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 64px 64px;
+    pointer-events: none;
+  }
+  #login-screen::after {
+    /* توهج فانوس خافت أعلى الشاشة */
+    content: '';
+    position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+    width: 70%; height: 50%;
+    background: radial-gradient(circle, rgba(234,182,72,0.16) 0%, transparent 70%);
+    pointer-events: none;
   }
   .login-box {
-    background: var(--cream); border-radius: 24px;
-    padding: 32px 24px; width: 100%; max-width: 360px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+    background: var(--cream);
+    border-radius: 50% 50% 24px 24px / 90px 90px 24px 24px;
+    padding: 56px 24px 32px; width: 100%; max-width: 360px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(234,182,72,0.15);
     text-align: center;
+    position: relative;
+    z-index: 1;
   }
   .login-logo {
-    width: 72px; height: 72px; border-radius: 18px;
+    width: 72px; height: 72px; border-radius: 50%;
     background: linear-gradient(135deg, var(--green-deep), var(--green-mid));
     display: flex; align-items: center; justify-content: center;
     font-size: 2.2rem; margin: 0 auto 16px;
-    box-shadow: 0 8px 24px rgba(26,74,46,0.3);
+    box-shadow: 0 0 0 6px var(--cream), 0 8px 24px rgba(12,58,47,0.35), 0 0 28px rgba(234,182,72,0.35);
   }
   .login-title { font-size: 1.3rem; font-weight: 900; color: var(--green-deep); margin-bottom: 4px; }
   .login-sub { font-size: 0.82rem; color: var(--gray-text); margin-bottom: 24px; }
   .login-field { margin-bottom: 14px; text-align: right; }
   .login-field label { font-size: 0.8rem; font-weight: 700; color: var(--green-deep); display: block; margin-bottom: 5px; }
   .login-field input {
-    width: 100%; padding: 11px 14px; border: 2px solid #e0ddd6;
+    width: 100%; padding: 11px 14px; border: 2px solid #e0d9c4;
     border-radius: 12px; font-family: 'Tajawal', sans-serif;
     font-size: 0.92rem; background: var(--gray-soft);
     color: var(--green-deep); margin-bottom: 0; transition: border 0.2s;
@@ -556,8 +594,8 @@
   }
   .login-btn:hover { opacity: 0.9; }
   .login-error {
-    background: #fdecea; border: 1px solid #ef9a9a; border-radius: 10px;
-    padding: 10px 14px; font-size: 0.82rem; color: #c62828;
+    background: #f8e6df; border: 1px solid #ef9a9a; border-radius: 10px;
+    padding: 10px 14px; font-size: 0.82rem; color: #b8462f;
     margin-top: 12px; display: none; font-weight: 700;
   }
 </style>
@@ -567,7 +605,7 @@
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">🏕️</div>
+    <div class="login-logo"><img src="logo.png" alt="شعار المسجد" style="width:58%;height:58%;object-fit:contain;filter:brightness(0) invert(1)"></div>
     <div class="login-title">النادي الصيفي</div>
     <div class="login-sub">مسجد سعيد أرحيل — نظام النقاط</div>
 
@@ -636,7 +674,7 @@
   <div class="card" id="alerts-card">
     <div class="card-title" style="justify-content:space-between">
       <span>🔔 تنبيهات المشرفين</span>
-      <button class="btn btn-sm" style="width:auto;background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="dismissAlerts()" id="dismiss-alerts-btn">✖ مسح التنبيهات</button>
+      <button class="btn btn-sm" style="width:auto;background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="dismissAlerts()" id="dismiss-alerts-btn">✖ مسح التنبيهات</button>
     </div>
     <div id="alerts-list"></div>
   </div>
@@ -695,7 +733,7 @@
     <div class="section-label">الطالب</div>
     <input type="text" id="pts-student-search" placeholder="🔍 ابحث باسم الطالب..." oninput="renderStudentBtns()" style="margin-bottom:8px">
     <div id="student-btns-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
-    <div id="selected-student-label" style="display:none;background:#e8f5ee;border:2px solid var(--green-mid);border-radius:10px;padding:8px 12px;font-weight:700;font-size:0.85rem;color:var(--green-deep);margin-bottom:10px"></div>
+    <div id="selected-student-label" style="display:none;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:8px 12px;font-weight:700;font-size:0.85rem;color:var(--green-deep);margin-bottom:10px"></div>
 
     <div class="section-label">فئة النشاط</div>
     <div class="cat-grid">
@@ -721,20 +759,20 @@
 
     <div class="section-label">عدد النقاط</div>
     <div class="row" style="margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(1)">+1</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(2)">+2</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(3)">+3</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(5)">+5</button>
-      <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(1)">+1</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(2)">+2</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(3)">+3</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(5)">+5</button>
+      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(10)">+10</button>
     </div>
     <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
-    <div id="attendance-streak-hint" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#7a4a00;margin-bottom:10px;line-height:1.5"></div>
+    <div id="attendance-streak-hint" style="display:none;background:#fbeedc;border:1px solid #eda355;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#6b4a12;margin-bottom:10px;line-height:1.5"></div>
     <label style="display:flex;align-items:center;gap:8px;background:#eef6f2;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
       <input type="checkbox" id="pts-fajr" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
       🕌 صلّى الفجر اليوم
     </label>
-    <label id="hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fff3e0;border:2px dashed #ffb74d;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#7a4a00;cursor:pointer">
-      <input type="checkbox" id="pts-hidden-correction" style="width:20px;height:20px;accent-color:#ffb74d;margin:0">
+    <label id="hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fbeedc;border:2px dashed #eda355;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#6b4a12;cursor:pointer">
+      <input type="checkbox" id="pts-hidden-correction" style="width:20px;height:20px;accent-color:#eda355;margin:0">
       🙈 تصحيح خاص (ما تظهر هالعملية بسجل باقي المشرفين)
     </label>
     <input type="text" id="pts-note" placeholder="ملاحظة (اختياري)">
@@ -755,8 +793,8 @@
     </select>
     <div class="section-label">اختر الطلاب <span id="bulk-count-label" style="color:var(--green-mid)"></span></div>
     <div class="row" style="margin-bottom:8px;gap:6px">
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid);width:auto" onclick="bulkSelectAll()">✅ تحديد الكل</button>
-      <button class="btn btn-sm" style="background:#fdecea;color:#c62828;border:2px solid #e57373;width:auto" onclick="bulkSelectNone()">✖ إلغاء الكل</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid);width:auto" onclick="bulkSelectAll()">✅ تحديد الكل</button>
+      <button class="btn btn-sm" style="background:#f8e6df;color:#b8462f;border:2px solid #cf8a78;width:auto" onclick="bulkSelectNone()">✖ إلغاء الكل</button>
     </div>
     <div id="bulk-students-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
 
@@ -772,11 +810,11 @@
 
     <div class="section-label">عدد النقاط لكل طالب</div>
     <div class="row" style="margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(1)">+1</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(2)">+2</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(3)">+3</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(5)">+5</button>
-      <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickBulkPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(1)">+1</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(2)">+2</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(3)">+3</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(5)">+5</button>
+      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickBulkPts(10)">+10</button>
     </div>
     <input type="number" id="bulk-amount" placeholder="عدد النقاط لكل طالب" min="1" value="1">
     <input type="text" id="bulk-note" placeholder="ملاحظة (اختياري)">
@@ -792,9 +830,9 @@
       <option value="">— اختر الفريق —</option>
     </select>
     <div class="row" style="margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(5)">+5</button>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(10)">+10</button>
-      <button class="btn btn-sm" style="background:#fff8e1;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickTeamPts(20)">+20</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(5)">+5</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickTeamPts(20)">+20</button>
     </div>
     <input type="number" id="pts-team-amount" placeholder="عدد النقاط" min="1" value="5">
     <input type="text" id="pts-team-note" placeholder="سبب (اختياري)">
@@ -857,7 +895,7 @@
     </select>
     <input type="date" id="log-filter-date" onchange="renderLog()">
     <div class="row" style="margin-bottom:12px">
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
       <button class="btn btn-sm btn-danger" onclick="clearLog()">🗑️ مسح السجل</button>
     </div>
     <div id="log-list"></div>
@@ -893,6 +931,15 @@
   <div class="card">
     <div class="card-title">⚽ هدّاف الأسبوع</div>
     <div id="top-scorer-week"></div>
+    <div class="section-label" style="margin-top:10px">تعديل يدوي</div>
+    <select id="top-scorer-select">
+      <option value="">— اختر لاعباً —</option>
+    </select>
+    <input type="number" id="top-scorer-goals" placeholder="عدد الأهداف" min="0" value="1">
+    <div class="row">
+      <button class="btn btn-gold" onclick="setTopScorerOverride()">⚽ تثبيت هدّاف الأسبوع</button>
+      <button class="btn btn-sm" style="width:auto;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="clearTopScorerOverride()">🔄 تلقائي</button>
+    </div>
   </div>
 
   <div class="divider"></div>
@@ -900,9 +947,9 @@
   <div class="card">
     <div class="card-title" id="match-form-title" style="justify-content:space-between">
       <span>📝 تسجيل / جدولة مباراة</span>
-      <button class="btn btn-sm" id="match-cancel-edit-btn" style="display:none;width:auto;background:#fdecea;color:#c62828;border:2px solid #e57373" onclick="cancelEditMatch()">✖ إلغاء التعديل</button>
+      <button class="btn btn-sm" id="match-cancel-edit-btn" style="display:none;width:auto;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="cancelEditMatch()">✖ إلغاء التعديل</button>
     </div>
-    <div id="match-edit-banner" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#5d4900;font-weight:700;margin-bottom:10px">✏️ أنت الآن تعدّل على مباراة محفوظة</div>
+    <div id="match-edit-banner" style="display:none;background:#fbecc9;border:1px solid #eab648;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#5c4512;font-weight:700;margin-bottom:10px">✏️ أنت الآن تعدّل على مباراة محفوظة</div>
     <input type="hidden" id="match-edit-id" value="">
     <input type="hidden" id="match-edit-tournament" value="">
     <div class="section-label">الفريق الأول</div>
@@ -937,7 +984,7 @@
       </div>
       <div class="section-label">الأهداف الفردية (اختياري)</div>
       <div id="match-scorers-area"></div>
-      <button class="btn btn-sm" style="background:#e8f5ee;color:var(--green-mid);border:2px solid var(--green-mid);width:auto;margin-bottom:10px" onclick="addScorerRow()">➕ إضافة هدف لاعب</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid);width:auto;margin-bottom:10px" onclick="addScorerRow()">➕ إضافة هدف لاعب</button>
     </div>
 
     <button class="btn btn-primary" id="match-save-btn" onclick="saveMatch()">💾 حفظ المباراة</button>
@@ -980,7 +1027,7 @@
       <div id="rules-laws-list"></div>
     </div>
 
-    <div class="card" style="background:#fff8e1;border:1px solid #ffe082">
+    <div class="card" style="background:#fbecc9;border:1px solid #eab648">
       <div class="card-title">✏️ ملاحظة للمشرفين</div>
       <p id="rules-admin-note" style="font-size:0.82rem;color:#7a5c00;line-height:1.7"></p>
     </div>
@@ -1157,9 +1204,9 @@ function renderAccountModalContent(backdrop, name) {
         بيشتغل بس على هالجهاز والمتصفح الحالي. لازم تفعّله من كل جهاز تستخدمه لحاله.
       </p>
       ${!biometricSupported
-        ? `<div style="background:#fdecea;color:#c62828;border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700">⚠️ هالجهاز أو المتصفح ما بيدعم الفتح السريع</div>`
+        ? `<div style="background:#f8e6df;color:#b8462f;border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700">⚠️ هالجهاز أو المتصفح ما بيدعم الفتح السريع</div>`
         : hasBiometric
-          ? `<div style="background:#e8f5ee;color:var(--green-deep);border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700;margin-bottom:10px">✅ مفعّل على هذا الجهاز</div>
+          ? `<div style="background:#e6f4ef;color:var(--green-deep);border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700;margin-bottom:10px">✅ مفعّل على هذا الجهاز</div>
              <button class="btn btn-sm btn-danger" style="width:auto" onclick="removeBiometric()">إلغاء التفعيل من هذا الجهاز</button>`
           : `<button class="btn" onclick="setupBiometric()">تفعيل الفتح السريع على هذا الجهاز</button>`
       }
@@ -1233,6 +1280,7 @@ function ensureFields() {
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
+  if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
   if (state.league.tournament === undefined) state.league.tournament = null;
   if (state.league.tournament && !state.league.tournament.revealedWeeks) state.league.tournament.revealedWeeks = {};
   state.students.forEach(s => {
@@ -1241,7 +1289,7 @@ function ensureFields() {
     if (s.quranCount === undefined) s.quranCount = 0; // عدد التسميعات — صفحة لاحقة
   });
   state.teams.forEach(t => {
-    if (!t.color) t.color = '#4caf7d';
+    if (!t.color) t.color = '#2fae8f';
     if (t.weekStartPoints === undefined) t.weekStartPoints = t.points;
     if (t.leaderId === undefined) t.leaderId = '';
     if (t.viceId === undefined) t.viceId = '';
@@ -1305,8 +1353,8 @@ function mdLite(text) {
 }
 
 function ruleColorStyle(color) {
-  if (color === 'gold') return { border: 'var(--gold)', bg: '#fffaf0', titleColor: 'var(--green-deep)' };
-  if (color === 'red')  return { border: '#c62828', bg: '#fdecea', titleColor: '#c62828' };
+  if (color === 'gold') return { border: 'var(--gold)', bg: '#fdf8ee', titleColor: 'var(--green-deep)' };
+  if (color === 'red')  return { border: '#b8462f', bg: '#f8e6df', titleColor: '#b8462f' };
   return { border: 'var(--green-mid)', bg: '#f7faf8', titleColor: 'var(--green-deep)' };
 }
 
@@ -1431,13 +1479,13 @@ function renderRulesEditForm() {
     <div class="card" style="border:2px dashed var(--gold-light)">
       <div class="card-title">⭐ آلية تحصيل النقاط</div>
       ${rulesDraft.pointsRules.map((r, i) => ruleCard('pointsRules', r, i)).join('')}
-      <button class="btn btn-sm" style="width:100%;background:#e8f5ee;color:var(--green-mid);border:2px dashed var(--green-mid)" onclick="addRuleItem('pointsRules')">➕ إضافة بند نقاط</button>
+      <button class="btn btn-sm" style="width:100%;background:#e6f4ef;color:var(--green-mid);border:2px dashed var(--green-mid)" onclick="addRuleItem('pointsRules')">➕ إضافة بند نقاط</button>
     </div>
 
     <div class="card" style="border:2px dashed var(--gold-light)">
       <div class="card-title">⚖️ القوانين</div>
       ${rulesDraft.lawsRules.map((r, i) => ruleCard('lawsRules', r, i)).join('')}
-      <button class="btn btn-sm" style="width:100%;background:#fdecea;color:#c62828;border:2px dashed #c62828" onclick="addRuleItem('lawsRules')">➕ إضافة قانون</button>
+      <button class="btn btn-sm" style="width:100%;background:#f8e6df;color:#b8462f;border:2px dashed #b8462f" onclick="addRuleItem('lawsRules')">➕ إضافة قانون</button>
     </div>
 
     <div class="card" style="border:2px dashed var(--gold-light)">
@@ -1447,7 +1495,7 @@ function renderRulesEditForm() {
 
     <div class="row" style="gap:10px;margin-bottom:24px">
       <button class="btn btn-primary" onclick="saveRulesEdit()">💾 حفظ القوانين للجميع</button>
-      <button class="btn btn-sm" style="background:#eee;color:#555;width:auto;padding:11px 18px" onclick="cancelEditRules()">✖ إلغاء</button>
+      <button class="btn btn-sm" style="background:#e9e2d2;color:#555;width:auto;padding:11px 18px" onclick="cancelEditRules()">✖ إلغاء</button>
     </div>
   `;
 }
@@ -1499,7 +1547,7 @@ function fireConfetti(count = 60) {
     layer.id = 'confetti-layer';
     document.body.appendChild(layer);
   }
-  const colors = ['#d4a017', '#f0c84a', '#4caf7d', '#2d7a4f', '#ffffff'];
+  const colors = ['#c6901f', '#eab648', '#2fae8f', '#157a68', '#ffffff'];
   for (let i = 0; i < count; i++) {
     const piece = document.createElement('div');
     piece.className = 'confetti-piece';
@@ -1614,7 +1662,7 @@ function renderAlerts() {
 
   // إذا كانت التنبيهات ممسوحة ولم تنته المدة
   if (Date.now() < alertsDismissedUntil && alerts.length) {
-    el.innerHTML = `<div class="alert-item" style="background:#f5f5f5;border-color:#ddd"><span class="alert-icon">🔕</span><div class="alert-text" style="color:#888">تم مسح التنبيهات — ستظهر مجدداً بعد 24 ساعة<br><button onclick="alertsDismissedUntil=0;localStorage.removeItem('alertsDismissedUntil');renderAlerts()" style="background:none;border:none;color:var(--green-mid);font-weight:700;font-family:inherit;cursor:pointer;padding:0;font-size:0.8rem;margin-top:4px">↺ إظهار التنبيهات الآن</button></div></div>`;
+    el.innerHTML = `<div class="alert-item" style="background:#f3ede0;border-color:#ddd"><span class="alert-icon">🔕</span><div class="alert-text" style="color:#888">تم مسح التنبيهات — ستظهر مجدداً بعد 24 ساعة<br><button onclick="alertsDismissedUntil=0;localStorage.removeItem('alertsDismissedUntil');renderAlerts()" style="background:none;border:none;color:var(--green-mid);font-weight:700;font-family:inherit;cursor:pointer;padding:0;font-size:0.8rem;margin-top:4px">↺ إظهار التنبيهات الآن</button></div></div>`;
     if (dismissBtn) dismissBtn.style.display = 'none';
     return;
   }
@@ -1623,7 +1671,7 @@ function renderAlerts() {
 
   el.innerHTML = alerts.length
     ? alerts.join('')
-    : `<div class="alert-item" style="background:#e8f5ee;border-color:#a5d6b7"><span class="alert-icon">✅</span><div class="alert-text">لا توجد تنبيهات حالياً</div></div>`;
+    : `<div class="alert-item" style="background:#e6f4ef;border-color:#a5d6b7"><span class="alert-icon">✅</span><div class="alert-text">لا توجد تنبيهات حالياً</div></div>`;
 }
 
 
@@ -1699,7 +1747,7 @@ function fajrCountOf(studentId) {
   const days = new Set();
   state.log.forEach(l => {
     if (l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
-        l.meta.change > 0 && l.text && l.text.includes('صلاة الفجر')) {
+        l.meta.change >= 0 && l.text && l.text.includes('صلاة الفجر')) {
       days.add(l.isoDate || new Date(l.date).toISOString().slice(0,10));
     }
   });
@@ -1805,7 +1853,7 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-num">⚽ ${goals}</div>
           <div class="pmodal-stat-lbl">أهدافه بالدوري</div>
         </div>
-        <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1px solid #ffb74d' : ''}">
+        <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fbeedc,#ffe0b2);border:1px solid #eda355' : ''}">
           ${isRaed ? `<button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
           <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}${s.streakOverride !== undefined && s.streakOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
@@ -1817,12 +1865,12 @@ function openStudentModal(studentId) {
         <div class="pmodal-stat" style="grid-column:1 / -1;background:none;box-shadow:none;padding:6px 0">
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:${isRaed ? '8px' : '0'}">
             ${customBadges.map((b, i) => `
-              <span style="background:#fff8e1;border:1px solid #ffd54f;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;color:#8a6500;display:inline-flex;align-items:center;gap:6px">
+              <span style="background:#fbecc9;border:1px solid #e0b23e;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;color:#7a5a12;display:inline-flex;align-items:center;gap:6px">
                 ${b.icon} ${b.label}
-                ${isRaed ? `<button onclick="removeCustomBadge(${s.id},${i})" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:0.8rem;padding:0;line-height:1">✕</button>` : ''}
+                ${isRaed ? `<button onclick="removeCustomBadge(${s.id},${i})" style="background:none;border:none;color:#b8462f;cursor:pointer;font-size:0.8rem;padding:0;line-height:1">✕</button>` : ''}
               </span>`).join('')}
           </div>
-          ${isRaed ? `<button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#8a6500;border:2px solid #ffd54f" onclick="addCustomBadge(${s.id})">🏅 إضافة وسام مخصّص</button>` : ''}
+          ${isRaed ? `<button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#7a5a12;border:2px solid #e0b23e" onclick="addCustomBadge(${s.id})">🏅 إضافة وسام مخصّص</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -2429,7 +2477,7 @@ function addTeam() {
   const name = document.getElementById('new-team-name').value.trim();
   if (!name) { toast('أدخل اسم الفريق'); return; }
   if (state.teams.find(t => t.name === name)) { toast('الفريق موجود مسبقاً'); return; }
-  const defaultColors = ['#4caf7d','#42a5f5','#d4a017','#ec407a','#ab47bc','#26a69a','#ff7043','#789262'];
+  const defaultColors = ['#2fae8f','#42a5f5','#c6901f','#ec407a','#ab47bc','#26a69a','#ff7043','#789262'];
   const color = defaultColors[state.teams.length % defaultColors.length];
   state.teams.push({ id: Date.now(), name, points: 0, color });
   logEntry('🏅', `تمت إضافة الفريق: ${name}`);
@@ -2533,16 +2581,11 @@ async function givePoints(dir) {
     kind: 'student', studentId: student.id, teamId: student.teamId || null, change
   }, isHiddenCorrection);
 
-  // صلاة الفجر تُمنح كعملية نقاط منفصلة تماماً (بنفس القيمة المُدخلة)، بسطر سجل خاص فيها لحالها،
-  // حتى تبقى الإحصائيات واضحة ومفصولة عن نقاط الحضور العادية
+  // صلاة الفجر بتتسجل كسطر منفصل بالسجل عشان الإحصائيات تضل واضحة، بس بدون نقاط إضافية —
+  // النقاط يلي دخلها المشرف (amt) اتمنحت مرة وحدة فقط بالسطر الأساسي فوق، الفجر هون تسجيل/توثيق بس
   if (fajrChecked) {
-    student.points = student.points + amt;
-    if (student.teamId) {
-      const team = state.teams.find(t => t.id == student.teamId);
-      if (team) team.points = team.points + amt;
-    }
-    logEntry('🕌', `${student.name} +${amt} نقطة | 🕌 صلاة الفجر`, {
-      kind: 'student', studentId: student.id, teamId: student.teamId || null, change: amt
+    logEntry('🕌', `${student.name} | 🕌 صلّى الفجر (بدون نقاط إضافية)`, {
+      kind: 'student', studentId: student.id, teamId: student.teamId || null, change: 0
     }, isHiddenCorrection);
   }
 
@@ -2551,7 +2594,7 @@ async function givePoints(dir) {
   document.getElementById('pts-note').value = '';
   if (document.getElementById('pts-fajr')) document.getElementById('pts-fajr').checked = false;
   if (document.getElementById('pts-hidden-correction')) document.getElementById('pts-hidden-correction').checked = false;
-  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${fajrChecked ? ' + 🕌 ' + amt + ' نقطة فجر' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
+  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${fajrChecked ? ' 🕌' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
 }
 
 function giveTeamPoints(dir) {
@@ -2778,6 +2821,18 @@ function renderSelects() {
     });
     if (powv) pow.value = powv;
   }
+  const tsw = document.getElementById('top-scorer-select');
+  if (tsw) {
+    const tswv = tsw.value;
+    tsw.innerHTML = '<option value="">— اختر لاعباً —</option>';
+    state.students.slice().sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(s => {
+      const team = state.teams.find(t => t.id == s.teamId);
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name + (team ? ` – ${team.name}` : '');
+      tsw.appendChild(opt);
+    });
+    if (tswv) tsw.value = tswv;
+  }
 }
 
 // دالة مساعدة لتعبية أي select بقائمة الفرق دون تكرار الكود
@@ -2804,16 +2859,16 @@ function getStudentBadges(student) {
   const initiativeLogs = positiveLogs.filter(l => l.text.includes('تميّز ومبادرة'));
   const moralsLogs = positiveLogs.filter(l => l.text.includes('أخلاق وسلوك'));
 
-  if (student.points >= 100) badges.push({ icon: '👑', label: 'نجم النادي', color: '#d4a017' });
-  else if (student.points >= 50) badges.push({ icon: '🌟', label: '٥٠+ نقطة', color: '#d4a017' });
+  if (student.points >= 100) badges.push({ icon: '👑', label: 'نجم النادي', color: '#c6901f' });
+  else if (student.points >= 50) badges.push({ icon: '🌟', label: '٥٠+ نقطة', color: '#c6901f' });
 
-  if (attendanceCountOf(student.id) >= 5) badges.push({ icon: '📅', label: 'ملتزم بالحضور', color: '#2d7a4f' });
+  if (attendanceCountOf(student.id) >= 5) badges.push({ icon: '📅', label: 'ملتزم بالحضور', color: '#157a68' });
   if (fajrCountOf(student.id) >= 5) badges.push({ icon: '🕌', label: 'مواظب على الفجر', color: '#00695c' });
-  if (quranLogs.length >= 3) badges.push({ icon: '📖', label: 'حافظ مميز', color: '#4caf7d' });
+  if (quranLogs.length >= 3) badges.push({ icon: '📖', label: 'حافظ مميز', color: '#2fae8f' });
   if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة', color: '#1565c0' });
   if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق', color: '#ab47bc' });
-  if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً', color: '#e53935' });
-  (student.customBadges || []).forEach(b => badges.push({ icon: b.icon, label: b.label, color: '#8a6500' }));
+  if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً', color: '#b8462f' });
+  (student.customBadges || []).forEach(b => badges.push({ icon: b.icon, label: b.label, color: '#7a5a12' }));
 
   return badges;
 }
@@ -2848,7 +2903,7 @@ function renderHome() {
   } else {
     wl.innerHTML = `
       ${topStudentWeek ? `<div class="student-item"><div class="student-info"><span style="font-size:1.3rem">🌟</span><div><div class="student-name clickable-name" onclick="openStudentModal(${topStudentWeek.id})">${topStudentWeek.name}</div><div class="student-team">طالب الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topStudentWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
-      ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#4caf7d'};width:18px;height:18px"></span><div><div class="student-name">${topTeamWeek.name}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
+      ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#2fae8f'};width:18px;height:18px"></span><div><div class="student-name">${topTeamWeek.name}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
     `;
   }
 
@@ -2861,7 +2916,7 @@ function renderHome() {
     top.innerHTML = sorted.map((s, i) => {
       const team = state.teams.find(t => t.id == s.teamId);
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
-      const dot = team ? `<span class="team-color-dot" style="background:${team.color || '#4caf7d'}"></span>` : '';
+      const dot = team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>` : '';
       return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
         <div class="rank-badge">${medal}</div>
         <div class="rank-name clickable-name" onclick="openStudentModal(${s.id})">${s.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${dot}${team ? team.name : ''}</span></div>
@@ -2881,7 +2936,7 @@ function renderHome() {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
       return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
         <div class="rank-badge">${medal}</div>
-        <div class="rank-name"><span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${members} عضو</span></div>
+        <div class="rank-name"><span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${members} عضو</span></div>
         <div class="rank-pts"><span class="pts-val" data-kind="team" data-id="${t.id}">${t.points}</span><span class="pts-label"> نقطة</span></div>
       </div>`;
     }).join('');
@@ -2924,13 +2979,13 @@ function renderStudentsList() {
           </div>
           <div>
             <div class="student-name clickable-name" onclick="openStudentModal(${s.id})">${s.name}</div>
-            <div class="student-team">${team ? `<span class="team-color-dot" style="background:${team.color || '#4caf7d'}"></span>${team.name}` : 'بدون فريق'}</div>
+            <div class="student-team">${team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>${team.name}` : 'بدون فريق'}</div>
             ${renderBadges(s)}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <div class="student-pts" style="color:${s.points < 0 ? '#e53935' : 'var(--green-mid)'}">${s.points}<div class="pts-label">نقطة</div></div>
-          <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="toggleEditStudentName(${s.id})">✏️</button>
+          <div class="student-pts" style="color:${s.points < 0 ? '#b8462f' : 'var(--green-mid)'}">${s.points}<div class="pts-label">نقطة</div></div>
+          <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="toggleEditStudentName(${s.id})">✏️</button>
           <button class="btn btn-sm" style="width:auto;background:#e3f2fd;color:#1565c0" onclick="toggleMoveStudent(${s.id})">🔄</button>
           <button class="btn btn-sm btn-danger" onclick="removeStudent(${s.id})">🗑</button>
         </div>
@@ -2992,7 +3047,7 @@ function renderTeamsChart() {
   svg += `<line x1="${padL}" y1="${yOf(0)}" x2="${w-padR}" y2="${yOf(0)}" stroke="#ddd" stroke-width="1"/>`;
 
   state.teams.forEach(t => {
-    const color = t.color || '#4caf7d';
+    const color = t.color || '#2fae8f';
     const pts = weeksData.map((wd, i) => {
       const idx = state.teams.indexOf(t);
       return [xOf(i), yOf(wd.points[idx])];
@@ -3013,7 +3068,7 @@ function renderTeamsChart() {
 
   const legend = state.teams.map(t =>
     `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;margin-left:10px">
-      <span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}
+      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}
     </span>`
   ).join('');
 
@@ -3028,8 +3083,8 @@ function renderTeamsList() {
   }
   el.innerHTML = state.teams.slice().sort((a,b) => b.points - a.points).map((t) => {
     const members = state.students.filter(s => s.teamId == t.id);
-    const ptsColor = t.points < 0 ? '#e53935' : 'var(--green-mid)';
-    const teamColor = t.color || '#4caf7d';
+    const ptsColor = t.points < 0 ? '#b8462f' : 'var(--green-mid)';
+    const teamColor = t.color || '#2fae8f';
     const leader = state.students.find(s => s.id == t.leaderId);
     const vice = state.students.find(s => s.id == t.viceId);
     const memberOptions = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
@@ -3111,7 +3166,7 @@ function renderLog() {
   }
 
   el.innerHTML = filtered.slice(0, 80).map(l => {
-    const adminTag = l.adminName ? `<span style="background:#e8f5ee;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
+    const adminTag = l.adminName ? `<span style="background:#e6f4ef;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
     const dateLabel = l.isoDate ? new Date(l.isoDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '';
     return `<div class="log-item" style="justify-content:space-between">
       <div style="display:flex;align-items:flex-start;gap:10px">
@@ -3220,7 +3275,7 @@ function filterScorerSuggestions(rowId, query) {
     return;
   }
   box.innerHTML = matches.map(s =>
-    `<div style="padding:8px 12px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid #f0ede6" onclick="pickScorerSuggestion('${rowId}', ${s.id})">${s.name}</div>`
+    `<div style="padding:8px 12px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid #efe8d8" onclick="pickScorerSuggestion('${rowId}', ${s.id})">${s.name}</div>`
   ).join('');
   box.style.display = 'block';
 }
@@ -3386,7 +3441,7 @@ async function deleteMatch(id) {
 function computeStandings(matches, teamIds) {
   const table = {}; // teamId -> {points, gf, ga, played}
   const teamsToUse = teamIds ? state.teams.filter(t => teamIds.some(id => String(id) === String(t.id))) : state.teams;
-  teamsToUse.forEach(t => table[t.id] = { teamId: t.id, points: 0, gf: 0, ga: 0, played: 0, wins: 0 });
+  teamsToUse.forEach(t => table[t.id] = { teamId: t.id, points: 0, gf: 0, ga: 0, played: 0, wins: 0, draws: 0, losses: 0 });
 
   matches.filter(m => m.status === 'played').forEach(m => {
     const a = table[m.teamAId], b = table[m.teamBId];
@@ -3394,9 +3449,9 @@ function computeStandings(matches, teamIds) {
     a.played++; b.played++;
     a.gf += m.scoreA; a.ga += m.scoreB;
     b.gf += m.scoreB; b.ga += m.scoreA;
-    if (m.scoreA > m.scoreB) { a.points += 3; a.wins++; }
-    else if (m.scoreB > m.scoreA) { b.points += 3; b.wins++; }
-    else { a.points += 1; b.points += 1; }
+    if (m.scoreA > m.scoreB) { a.points += 3; a.wins++; b.losses++; }
+    else if (m.scoreB > m.scoreA) { b.points += 3; b.wins++; a.losses++; }
+    else { a.points += 1; b.points += 1; a.draws++; b.draws++; }
   });
 
   return Object.values(table).sort((x,y) => y.points - x.points || (y.gf - y.ga) - (x.gf - x.ga));
@@ -3405,7 +3460,9 @@ function computeStandings(matches, teamIds) {
 function renderTeamOfWeek() {
   const el = document.getElementById('league-team-of-week');
   if (!el) return;
-  const weekMatches = state.league.matches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
+  const t = state.league.tournament;
+  const allMatches = t ? t.matches : [];
+  const weekMatches = allMatches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
   if (!weekMatches.length) {
     el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-icon">⚽</div><p>لا توجد نتائج مباريات هذا الأسبوع بعد</p></div>';
     return;
@@ -3417,11 +3474,11 @@ function renderTeamOfWeek() {
   }
   const top = standings[0];
   const team = state.teams.find(t => t.id == top.teamId);
-  el.innerHTML = `<div class="team-card" style="background:${(team.color||'#4caf7d')}1a;border-right-color:${team.color||'#4caf7d'}">
+  el.innerHTML = `<div class="team-card" style="background:${(team.color||'#2fae8f')}1a;border-right-color:${team.color||'#2fae8f'}">
     <div class="team-name" style="display:flex;align-items:center;gap:8px">
-      <span class="team-color-dot" style="background:${team.color||'#4caf7d'};width:16px;height:16px"></span>🏆 ${team.name}
+      <span class="team-color-dot" style="background:${team.color||'#2fae8f'};width:16px;height:16px"></span>🏆 ${team.name}
     </div>
-    <div class="team-count">${top.points} نقطة دوري هذا الأسبوع (${top.wins} فوز) | أهداف: ${top.gf} - ${top.ga}</div>
+    <div class="team-count">${top.points} نقطة دوري هذا الأسبوع (${top.wins} فوز - ${top.draws} تعادل - ${top.losses} خسارة) | أهداف: ${top.gf} - ${top.ga}</div>
   </div>`;
 }
 
@@ -3455,15 +3512,45 @@ function renderPlayerOfWeek() {
   </div>`;
 }
 
+function setTopScorerOverride() {
+  const sid = document.getElementById('top-scorer-select').value;
+  const goals = parseInt(document.getElementById('top-scorer-goals').value, 10);
+  if (!sid) { toast('⚠️ اختر لاعباً أولاً'); return; }
+  if (isNaN(goals) || goals < 0) { toast('⚠️ عدد أهداف غير صالح'); return; }
+  const student = state.students.find(s => s.id == sid);
+  if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
+  state.league.topScorerOverride[currentWeekKey()] = { studentId: sid, goals };
+  logEntry('⚽', `تعديل يدوي: هدّاف الأسبوع ${student.name} (${goals} هدف)`);
+  save(); render();
+  toast(`✅ تم تثبيت ${student.name} كهدّاف الأسبوع بـ ${goals} هدف`);
+}
+
+function clearTopScorerOverride() {
+  if (state.league.topScorerOverride) delete state.league.topScorerOverride[currentWeekKey()];
+  logEntry('🔄', `رجّع هدّاف الأسبوع للحساب التلقائي`);
+  save(); render();
+  toast('✅ رجع الحساب التلقائي');
+}
+
 function renderTopScorerWeek() {
   const el = document.getElementById('top-scorer-week');
   if (!el) return;
-  const weekMatches = state.league.matches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
-  const goalsByStudent = {};
-  weekMatches.forEach(m => m.scorers.forEach(sc => {
-    goalsByStudent[sc.studentId] = (goalsByStudent[sc.studentId] || 0) + sc.goals;
-  }));
-  const entries = Object.entries(goalsByStudent).sort((a,b) => b[1] - a[1]);
+
+  const override = state.league.topScorerOverride && state.league.topScorerOverride[currentWeekKey()];
+  let entries;
+  if (override) {
+    entries = [[override.studentId, override.goals]];
+  } else {
+    const t = state.league.tournament;
+    const allMatches = t ? t.matches : [];
+    const weekMatches = allMatches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
+    const goalsByStudent = {};
+    weekMatches.forEach(m => (m.scorers || []).forEach(sc => {
+      goalsByStudent[sc.studentId] = (goalsByStudent[sc.studentId] || 0) + sc.goals;
+    }));
+    entries = Object.entries(goalsByStudent).sort((a,b) => b[1] - a[1]);
+  }
+
   if (!entries.length) {
     el.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد أهداف مسجلة هذا الأسبوع بعد</p></div>';
     return;
@@ -3475,7 +3562,7 @@ function renderTopScorerWeek() {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
     return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
       <div class="rank-badge">${medal}</div>
-      <div class="rank-name clickable-name" onclick="openStudentModal(${student.id})">${student.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${team ? team.name : ''}</span></div>
+      <div class="rank-name clickable-name" onclick="openStudentModal(${student.id})">${student.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${team ? team.name : ''}${override && i === 0 ? ' (معدَّل يدوياً)' : ''}</span></div>
       <div class="rank-pts">${goals}<span class="pts-label"> هدف</span></div>
     </div>`;
   }).join('');
@@ -3490,7 +3577,7 @@ function renderMatchesLists() {
   const played = state.league.matches.filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date));
 
   const teamName = id => { const t = state.teams.find(t => t.id == id); return t ? t.name : '—'; };
-  const teamColorOf = id => { const t = state.teams.find(t => t.id == id); return t ? (t.color || '#4caf7d') : '#999'; };
+  const teamColorOf = id => { const t = state.teams.find(t => t.id == id); return t ? (t.color || '#2fae8f') : '#999'; };
 
   upcomingEl.innerHTML = upcoming.length ? upcoming.map(m => `
     <div class="log-item" style="justify-content:space-between">
@@ -3503,7 +3590,7 @@ function renderMatchesLists() {
         <div class="log-time">${m.date}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editMatch(${m.id})">✏️</button>
+        <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="editMatch(${m.id})">✏️</button>
         <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
       </div>
     </div>
@@ -3524,7 +3611,7 @@ function renderMatchesLists() {
         <div class="log-time">${m.date}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editMatch(${m.id})">✏️</button>
+        <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="editMatch(${m.id})">✏️</button>
         <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
       </div>
     </div>`;
@@ -3550,10 +3637,10 @@ function pairKey(a, b) {
 }
 
 // يبني مباريات أسبوع واحد فقط بحيث يلعب كل فريق مباراتين بالضبط (ترتيب دائري عشوائي).
-// avoidPairs: Set اختياري لمواجهات سبق حصولها — الدالة بتجرب كذا ترتيب عشوائي وتختار
-// الأقل تكراراً لهاي المواجهات (قدر الإمكان، بدون ضمان مطلق خصوصاً لو عدد الفرق قليل جداً)
-function generateWeekMatches(teamIds, weekNum, startDateISO, avoidPairs) {
-  avoidPairs = avoidPairs || new Set();
+// pairCounts: Map اختياري (pairKey -> عدد مرات المواجهة سابقاً) — الدالة بتجرب كذا ترتيب عشوائي
+// وتختار الترتيب اللي فيه أقل مجموع تكرار لمواجهاته، يعني كل فريق يميل يلعب مع الأقل ملاقاة له
+function generateWeekMatches(teamIds, weekNum, startDateISO, pairCounts) {
+  pairCounts = pairCounts || new Map();
   const n = teamIds.length;
   const start = new Date(startDateISO);
   const matches = [];
@@ -3571,17 +3658,18 @@ function generateWeekMatches(teamIds, weekNum, startDateISO, avoidPairs) {
     return matches;
   }
 
-  // نجرب عدة ترتيبات عشوائية ونختار الترتيب اللي فيه أقل عدد مواجهات متكررة من avoidPairs
+  // نجرب عدة ترتيبات عشوائية ونختار الترتيب اللي فيه أقل مجموع تكرار (مش بس "صار قبل ولا لأ")،
+  // هيك كل فريق يميل يلعب مع الفريق الأقل ملاقاة له فعلياً، مش بس أي فريق ما لعب معه أبداً
   let bestOrder = null, bestScore = Infinity;
-  const attempts = 40;
+  const attempts = 60;
   for (let t = 0; t < attempts; t++) {
     const order = shuffleArray(teamIds);
     let score = 0;
     for (let i = 0; i < n; i++) {
-      if (avoidPairs.has(pairKey(order[i], order[(i + 1) % n]))) score++;
+      score += pairCounts.get(pairKey(order[i], order[(i + 1) % n])) || 0;
     }
     if (score < bestScore) { bestScore = score; bestOrder = order; }
-    if (bestScore === 0) break; // لقينا ترتيب بدون أي تكرار، ما في داعي نكمل نجرب
+    if (bestScore === 0) break; // لقينا ترتيب بدون أي مواجهة سابقة إطلاقاً
   }
 
   for (let i = 0; i < n; i++) {
@@ -3602,10 +3690,13 @@ function generateRoundRobinSchedule(teamIds, startDateISO) {
   const weeksCount = 4;
   const start = startDateISO || new Date().toISOString().slice(0,10);
   let matches = [];
-  const usedPairs = new Set();
+  const pairCounts = new Map();
   for (let w = 1; w <= weeksCount; w++) {
-    const weekMatches = generateWeekMatches(teamIds, w, start, usedPairs);
-    weekMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId)));
+    const weekMatches = generateWeekMatches(teamIds, w, start, pairCounts);
+    weekMatches.forEach(m => {
+      const k = pairKey(m.teamAId, m.teamBId);
+      pairCounts.set(k, (pairCounts.get(k) || 0) + 1);
+    });
     matches = matches.concat(weekMatches);
   }
   return matches;
@@ -3613,7 +3704,7 @@ function generateRoundRobinSchedule(teamIds, startDateISO) {
 
 // إصلاح جدول الأسابيع القادمة بدون المساس بأي أسبوع فيه مباراة ملعوبة فعلاً.
 // أي أسبوع ما فيه ولا نتيجة مسجّلة يُعاد توليده بالكامل بالخوارزمية الصحيحة الجديدة (مباراتين لكل فريق)،
-// مع محاولة قدر الإمكان تفادي تكرار المواجهات اللي سبق حصولها بالأسابيع الملعوبة أو المُعاد توليدها.
+// مع إعطاء أولوية لكل فريق يلعب مع الفريق الأقل ملاقاة له بالأسابيع السابقة (قدر الإمكان رياضياً).
 async function fixFutureWeeksSchedule() {
   const t = state.league.tournament;
   if (!t) return;
@@ -3628,26 +3719,32 @@ async function fixFutureWeeksSchedule() {
   }
 
   const proceed = await customConfirm(
-    `رح تنحذف كل المباريات "غير الملعوبة" من الأسابيع (${weeksToRegenerate.join('، ')}) وتنعاد جدولتها بشكل متوازن (مباراتين بالضبط لكل فريق)، مع محاولة تفادي تكرار مواجهات سبق حصولها بالأسابيع السابقة قدر الإمكان.\n\nأي أسبوع فيه نتيجة ملعوبة فعلاً (متل الأسبوع الأول عندك) ما رح ينحذف أو يتغيّر إطلاقاً.\n\nمتأكد؟`,
+    `رح تنحذف كل المباريات "غير الملعوبة" من الأسابيع (${weeksToRegenerate.join('، ')}) وتنعاد جدولتها بشكل متوازن (مباراتين بالضبط لكل فريق)، مع إعطاء أولوية لكل فريق يلعب مع الفريق الأقل ملاقاة له سابقاً.\n\nأي أسبوع فيه نتيجة ملعوبة فعلاً (متل الأسبوع الأول عندك) ما رح ينحذف أو يتغيّر إطلاقاً.\n\nمتأكد؟`,
     '🔄'
   );
   if (!proceed) return;
 
   const keptMatches = t.matches.filter(m => playedWeeks.has(String(m.week)));
 
-  // نجمع كل المواجهات اللي سبق حصولها بالأسابيع المحفوظة، لنتفاداها قدر الإمكان بالأسابيع الجديدة
-  const usedPairs = new Set();
-  keptMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId)));
+  // نحسب كم مرة كل زوج فرق سبق تقابل فعلياً (بكل الأسابيع المحفوظة)، مش بس "صار ولا لأ"
+  const pairCounts = new Map();
+  keptMatches.forEach(m => {
+    const k = pairKey(m.teamAId, m.teamBId);
+    pairCounts.set(k, (pairCounts.get(k) || 0) + 1);
+  });
 
   let newMatches = [];
   weeksToRegenerate.forEach(w => {
-    const weekMatches = generateWeekMatches(t.teamIds, w, t.startDate, usedPairs);
-    weekMatches.forEach(m => usedPairs.add(pairKey(m.teamAId, m.teamBId))); // تراكمي حتى الأسابيع الجديدة ما تتكرر مع بعضها
+    const weekMatches = generateWeekMatches(t.teamIds, w, t.startDate, pairCounts);
+    weekMatches.forEach(m => {
+      const k = pairKey(m.teamAId, m.teamBId);
+      pairCounts.set(k, (pairCounts.get(k) || 0) + 1); // تراكمي حتى الأسابيع الجديدة توزع صح مع بعضها كمان
+    });
     newMatches = newMatches.concat(weekMatches);
   });
 
   t.matches = [...keptMatches, ...newMatches];
-  logEntry('🔄', `إعادة توليد جدول البطولة للأسابيع (${weeksToRegenerate.join('، ')}) بشكل متوازن — مباراتين لكل فريق، مع تقليل تكرار المواجهات`);
+  logEntry('🔄', `إعادة توليد جدول البطولة للأسابيع (${weeksToRegenerate.join('، ')}) بشكل متوازن — مباراتين لكل فريق، مع أولوية للأقل ملاقاة`);
   save(); render();
   toast('✅ تم إصلاح الجدول');
 }
@@ -3655,7 +3752,7 @@ async function fixFutureWeeksSchedule() {
 function renderTournamentTeamPicker() {
   return state.teams.map(t => `
     <button class="tournament-team-btn" data-team-id="${t.id}" onclick="toggleTournamentTeam(${t.id})">
-      <span class="team-color-dot" style="background:${t.color || '#4caf7d'}"></span>${t.name}
+      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}
     </button>
   `).join('');
 }
@@ -3768,13 +3865,13 @@ function renderTournament() {
 
   const standings = computeStandings(t.matches, t.teamIds);
   const teamName = id => { const tm = state.teams.find(x => x.id == id); return tm ? tm.name : '— فريق محذوف —'; };
-  const teamColorOf = id => { const tm = state.teams.find(x => x.id == id); return tm ? (tm.color || '#4caf7d') : '#999'; };
+  const teamColorOf = id => { const tm = state.teams.find(x => x.id == id); return tm ? (tm.color || '#2fae8f') : '#999'; };
 
   const standingsHTML = standings.map((row, i) => `
     <div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
       <div class="rank-badge">${i+1}</div>
       <div class="rank-name"><span class="team-color-dot" style="background:${teamColorOf(row.teamId)}"></span>${teamName(row.teamId)}<br>
-        <span style="font-size:0.7rem;color:var(--gray-text)">لعب ${row.played} | فوز ${row.wins} | أهداف ${row.gf}-${row.ga}</span>
+        <span style="font-size:0.7rem;color:var(--gray-text)">لعب ${row.played} | فوز ${row.wins} | تعادل ${row.draws} | خسارة ${row.losses} | أهداف ${row.gf}-${row.ga}</span>
       </div>
       <div class="rank-pts">${row.points}<span class="pts-label"> نقطة</span></div>
     </div>
@@ -3793,7 +3890,7 @@ function renderTournament() {
     return `
     <div class="section-label" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span>📅 الأسبوع ${w}</span>
-      <button class="btn btn-sm" style="width:auto;padding:4px 10px;${revealed ? 'background:#e8f5ee;color:var(--green-deep)' : 'background:#f5f5f5;color:#888'}" onclick="toggleWeekReveal(${w})">${revealed ? '👁️ ظاهر للطلاب' : '🙈 إظهار للطلاب'}</button>
+      <button class="btn btn-sm" style="width:auto;padding:4px 10px;${revealed ? 'background:#e6f4ef;color:var(--green-deep)' : 'background:#f3ede0;color:#888'}" onclick="toggleWeekReveal(${w})">${revealed ? '👁️ ظاهر للطلاب' : '🙈 إظهار للطلاب'}</button>
     </div>
     ${byWeek[w].map(m => {
       const scorersText = (m.scorers || []).length
@@ -3813,7 +3910,7 @@ function renderTournament() {
           <div class="log-time">${m.date}${m.status === 'scheduled' ? ' | قادمة' : ''}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12" onclick="editTournamentMatch(${m.id})">✏️</button>
+          <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="editTournamentMatch(${m.id})">✏️</button>
           <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteTournamentMatch(${m.id})">🗑</button>
         </div>
       </div>`;
@@ -3825,8 +3922,8 @@ function renderTournament() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <span style="font-size:0.8rem;color:var(--gray-text);font-weight:700">🏆 دوري نشط — ${t.teamIds.length} فرق</span>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-sm" style="width:auto;background:#fff8e1;color:#b88a12;border:2px solid #ffd54f" onclick="fixFutureWeeksSchedule()">🔄 إصلاح جدول الأسابيع القادمة</button>
-        <button class="btn btn-sm" style="width:auto;background:#fdecea;color:#c62828;border:2px solid #e57373" onclick="endTournament()">🏁 إنهاء الدوري</button>
+        <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519;border:2px solid #e0b23e" onclick="fixFutureWeeksSchedule()">🔄 إصلاح جدول الأسابيع القادمة</button>
+        <button class="btn btn-sm" style="width:auto;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="endTournament()">🏁 إنهاء الدوري</button>
       </div>
     </div>
     <div class="section-label">جدول الترتيب</div>
@@ -3856,7 +3953,7 @@ async function startApp() {
       // إذا فشل Firebase نعرض رسالة
       document.body.innerHTML = `<div style="font-family:Tajawal,sans-serif;text-align:center;padding:60px 24px;direction:rtl">
         <div style="font-size:3rem;margin-bottom:16px">⚠️</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#1a4a2e">تعذّر الاتصال بالخادم</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#0c3a2f">تعذّر الاتصال بالخادم</div>
         <div style="font-size:0.85rem;color:#777;margin-top:8px">تحقق من اتصالك بالإنترنت وأعد تحميل الصفحة</div>
       </div>`;
       return;
@@ -3864,7 +3961,7 @@ async function startApp() {
 
     // شاشة تحميل
     document.body.insertAdjacentHTML('afterbegin', `
-      <div id="loading-screen" style="position:fixed;inset:0;background:#1a4a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px">
+      <div id="loading-screen" style="position:fixed;inset:0;background:#0c3a2f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px">
         <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><circle cx='25' cy='25' r='20' fill='none' stroke='%234caf7d' stroke-width='4' stroke-dasharray='31.4 94.2'><animateTransform attributeName='transform' type='rotate' dur='1s' repeatCount='indefinite' from='0 25 25' to='360 25 25'/></circle></svg>" style="width:48px;height:48px">
         <div style="color:white;font-family:Tajawal,sans-serif;font-size:1rem;font-weight:700">جاري تحميل النقاط...</div>
       </div>`);
@@ -3877,7 +3974,7 @@ async function startApp() {
       if (!data) {
         document.body.innerHTML = `<div style="font-family:Tajawal,sans-serif;text-align:center;padding:60px 24px;direction:rtl">
           <div style="font-size:3rem;margin-bottom:16px">📭</div>
-          <div style="font-size:1.1rem;font-weight:700;color:#1a4a2e">لا توجد بيانات بعد</div>
+          <div style="font-size:1.1rem;font-weight:700;color:#0c3a2f">لا توجد بيانات بعد</div>
           <div style="font-size:0.85rem;color:#777;margin-top:8px">لم يتم رفع أي نقاط للخادم بعد</div>
         </div>`;
         return;
@@ -3951,9 +4048,9 @@ async function checkForAdminUpdate() {
     const m = text.match(/<meta name="app-build" content="([^"]+)">/);
     if (m && CURRENT_BUILD && m[1] !== CURRENT_BUILD && !document.getElementById('update-banner')) {
       document.body.insertAdjacentHTML('beforeend', `
-        <div id="update-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a4a2e;color:white;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Tajawal',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 -4px 14px rgba(0,0,0,0.2)">
+        <div id="update-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#0c3a2f;color:white;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Tajawal',sans-serif;font-size:0.85rem;font-weight:700;box-shadow:0 -4px 14px rgba(0,0,0,0.2)">
           <span>🔄 في تحديث جديد للنظام</span>
-          <button onclick="location.reload()" style="background:#d4a017;color:#1a4a2e;border:none;border-radius:10px;padding:8px 16px;font-weight:800;font-family:inherit;cursor:pointer">تحديث الآن</button>
+          <button onclick="location.reload()" style="background:#c6901f;color:#0c3a2f;border:none;border-radius:10px;padding:8px 16px;font-weight:800;font-family:inherit;cursor:pointer">تحديث الآن</button>
         </div>`);
     }
   } catch (e) { /* تجاهل أي خطأ شبكة مؤقت */ }
