@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-13">
+<meta name="app-build" content="2026-07-05-14">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -1743,6 +1743,10 @@ function attendanceCountOf(studentId) {
 
 // عدد أيام صلاة الفجر المسجّلة للطالب (يوم واحد بالحد الأقصى لكل تاريخ لتفادي التكرار)
 function fajrCountOf(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (student && student.fajrOverride !== undefined && student.fajrOverride !== null) {
+    return student.fajrOverride; // تعديل يدوي من رائد يتجاوز الحساب التلقائي
+  }
   const days = new Set();
   state.log.forEach(l => {
     if (l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
@@ -1751,6 +1755,28 @@ function fajrCountOf(studentId) {
     }
   });
   return days.size;
+}
+
+// تعديل يدوي لعدد مرات صلاة الفجر — رائد فقط
+async function editFajrManually(studentId) {
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (!student) return;
+  const current = fajrCountOf(studentId);
+  const input = prompt(`عدّل عدد مرات صلاة الفجر لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
+  if (input === null) return;
+  if (input.trim() === '') {
+    delete student.fajrOverride;
+    logEntry('🔄', `${student.name}: رجّع عدد مرات صلاة الفجر للحساب التلقائي`);
+  } else {
+    const val = parseInt(input, 10);
+    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+    student.fajrOverride = val;
+    logEntry('✏️', `${student.name}: تعديل يدوي لعدد مرات صلاة الفجر إلى ${val}`);
+  }
+  save(); render();
+  toast('✅ تم تحديث عدد مرات صلاة الفجر');
+  openStudentModal(studentId);
 }
 
 // تعديل يدوي لعدد مرات الحضور — رائد فقط
@@ -1811,6 +1837,7 @@ function openStudentModal(studentId) {
   const team = state.teams.find(t => t.id == s.teamId);
   const goals = goalsOfStudent(s.id);
   const attendance = attendanceCountOf(s.id);
+  const fajr = fajrCountOf(s.id);
   const streak = studentStreakOf(s.id);
   const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
   const customBadges = s.customBadges || [];
@@ -1848,7 +1875,12 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-num">📅 ${attendance}</div>
           <div class="pmodal-stat-lbl">مرات الحضور${s.attendanceOverride !== undefined && s.attendanceOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
         </div>
-        <div class="pmodal-stat">
+        <div class="pmodal-stat" style="position:relative">
+          ${isRaed ? `<button onclick="editFajrManually(${s.id})" title="تعديل صلاة الفجر يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
+          <div class="pmodal-stat-num">🕌 ${fajr}</div>
+          <div class="pmodal-stat-lbl">صلاة الفجر${s.fajrOverride !== undefined && s.fajrOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
+        </div>
+        <div class="pmodal-stat" style="grid-column:1 / -1">
           <div class="pmodal-stat-num">⚽ ${goals}</div>
           <div class="pmodal-stat-lbl">أهدافه بالدوري</div>
         </div>
