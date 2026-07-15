@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-14">
+<meta name="app-build" content="2026-07-06-02">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -604,7 +604,7 @@
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo"><img src="logo.png" alt="شعار المسجد" style="width:58%;height:58%;object-fit:contain;filter:brightness(0) invert(1)"></div>
+    <div class="login-logo"><img src="logo.png" alt="شعار المسجد" style="width:66%;height:66%;object-fit:contain"></div>
     <div class="login-title">النادي الصيفي</div>
     <div class="login-sub">مسجد سعيد أرحيل — نظام النقاط</div>
 
@@ -627,7 +627,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:12px">
     <img src="logo.png" alt="شعار المسجد"
-      style="height:54px;width:54px;object-fit:contain;opacity:0.92;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.18))">
+      style="height:54px;width:auto;max-width:40px;object-fit:contain;opacity:0.95;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.18))">
     <div>
       <h1>نظام النقاط</h1>
       <p>النادي الصيفي – مسجد سعيد أرحيل</p>
@@ -751,8 +751,8 @@
       <button class="cat-btn" onclick="selectCat(this,'تميّز ومبادرة')">
         <span class="cat-icon">💡</span>تميّز ومبادرة
       </button>
-      <button class="cat-btn" onclick="selectCat(this,'أخرى')">
-        <span class="cat-icon">✏️</span>أخرى
+      <button class="cat-btn" onclick="selectCat(this,'🕌 صلاة الفجر')">
+        <span class="cat-icon">🕌</span>صلاة الفجر
       </button>
     </div>
 
@@ -766,10 +766,6 @@
     </div>
     <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
     <div id="attendance-streak-hint" style="display:none;background:#fbeedc;border:1px solid #eda355;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#6b4a12;margin-bottom:10px;line-height:1.5"></div>
-    <label style="display:flex;align-items:center;gap:8px;background:#eef6f2;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
-      <input type="checkbox" id="pts-fajr" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
-      🕌 صلّى الفجر اليوم
-    </label>
     <label id="hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fbeedc;border:2px dashed #eda355;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#6b4a12;cursor:pointer">
       <input type="checkbox" id="pts-hidden-correction" style="width:20px;height:20px;accent-color:#eda355;margin:0">
       🙈 تصحيح خاص (ما تظهر هالعملية بسجل باقي المشرفين)
@@ -897,6 +893,7 @@
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
       <button class="btn btn-sm btn-danger" onclick="clearLog()">🗑️ مسح السجل</button>
     </div>
+    <div id="log-category-summary"></div>
     <div id="log-list"></div>
   </div>
 </div>
@@ -2309,23 +2306,6 @@ function selectCat(btn, cat) {
   btn.classList.add('selected');
   selectedCat = cat;
   maybeSuggestAttendancePoints();
-  updateFajrCheckboxAvailability();
-}
-
-// خانة "صلّى الفجر" ممنوع تتفعّل مع فئة "حضور وانتظام" — لتفادي احتساب صلاة الفجر
-// كحضور نادي رسمي وزيادة سترايك الطالب بالغلط. لو الفئة حضور وانتظام، الخانة تنعطّل وتنفكّ تلقائياً.
-function updateFajrCheckboxAvailability() {
-  const fajrBox = document.getElementById('pts-fajr');
-  const fajrWrap = fajrBox ? fajrBox.closest('label') : null;
-  if (!fajrBox) return;
-  const isAttendance = selectedCat === 'حضور وانتظام';
-  fajrBox.disabled = isAttendance;
-  if (isAttendance) fajrBox.checked = false;
-  if (fajrWrap) {
-    fajrWrap.style.opacity = isAttendance ? '0.45' : '1';
-    fajrWrap.style.cursor = isAttendance ? 'not-allowed' : 'pointer';
-    fajrWrap.title = isAttendance ? 'ممنوع الجمع بين "حضور وانتظام" و"صلاة الفجر" بنفس العملية' : '';
-  }
 }
 
 function setQuickPts(n) {
@@ -2603,7 +2583,6 @@ async function givePoints(dir) {
     if (team) team.points = team.points + change;
   }
 
-  const fajrChecked = dir === 1 && selectedCat !== 'حضور وانتظام' && document.getElementById('pts-fajr')?.checked;
   const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-hidden-correction')?.checked;
   const noteText = note ? ` (${note})` : '';
   const icon = dir === 1 ? '⭐' : '➖';
@@ -2612,20 +2591,11 @@ async function givePoints(dir) {
     kind: 'student', studentId: student.id, teamId: student.teamId || null, change
   }, isHiddenCorrection);
 
-  // صلاة الفجر بتتسجل كسطر منفصل بالسجل عشان الإحصائيات تضل واضحة، بس بدون نقاط إضافية —
-  // النقاط يلي دخلها المشرف (amt) اتمنحت مرة وحدة فقط بالسطر الأساسي فوق، الفجر هون تسجيل/توثيق بس
-  if (fajrChecked) {
-    logEntry('🕌', `${student.name} | 🕌 صلّى الفجر (بدون نقاط إضافية)`, {
-      kind: 'student', studentId: student.id, teamId: student.teamId || null, change: 0
-    }, isHiddenCorrection);
-  }
-
   save(); render();
   document.getElementById('pts-amount').value = 1;
   document.getElementById('pts-note').value = '';
-  if (document.getElementById('pts-fajr')) document.getElementById('pts-fajr').checked = false;
   if (document.getElementById('pts-hidden-correction')) document.getElementById('pts-hidden-correction').checked = false;
-  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${fajrChecked ? ' 🕌' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
+  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${isHiddenCorrection ? ' 🙈' : ''}`);
 }
 
 function giveTeamPoints(dir) {
@@ -2771,7 +2741,6 @@ function toast(msg) {
 // ===================== RENDER =====================
 function render() {
   renderSelects();
-  updateFajrCheckboxAvailability();
   renderHome();
   renderStudentsList();
   renderStudentBtns();
@@ -3131,7 +3100,7 @@ function renderTeamsList() {
               onkeydown="if(event.key==='Enter'){this.blur()}">
           </div>
           <div class="team-pts" style="color:${ptsColor}">${t.points} <span style="font-size:1rem;font-weight:500">نقطة</span></div>
-          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.slice(0,4).map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${m.name.split(' ')[0]}</span>`).join('، ') + (members.length > 4 ? '...' : '') : ''}</div>
+          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${m.name.split(' ')[0]}</span>`).join('، ') : ''}</div>
           <div class="team-leaders">
             <div><span class="lbl">👑 القائد: </span>${leader ? `<b class="clickable-name" onclick="openStudentModal(${leader.id})">${leader.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
             <div><span class="lbl">🥈 نائب القائد: </span>${vice ? `<b class="clickable-name" onclick="openStudentModal(${vice.id})">${vice.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
@@ -3192,9 +3161,13 @@ function renderLog() {
   }
 
   if (!filtered.length) {
+    const summaryEl = document.getElementById('log-category-summary');
+    if (summaryEl) summaryEl.innerHTML = '';
     el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>لا توجد نتائج مطابقة للفلترة</p></div>';
     return;
   }
+
+  renderLogCategorySummary(studentFilter ? filtered : []);
 
   el.innerHTML = filtered.slice(0, 80).map(l => {
     const adminTag = l.adminName ? `<span style="background:#e6f4ef;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
@@ -3210,6 +3183,47 @@ function renderLog() {
       <button class="btn btn-sm btn-danger" style="width:auto;flex-shrink:0" onclick="removeLogEntry(${l.id})">🗑</button>
     </div>`;
   }).join('');
+}
+
+// استخراج اسم الفئة من نص السجل (الجزء بعد | وقبل أي ملاحظة بين قوسين)
+function extractCategoryFromLogText(text) {
+  const parts = text.split('|');
+  if (parts.length < 2) return null;
+  return parts[1].trim().replace(/\s*\(.*\)\s*$/, '').trim();
+}
+
+// ملخّص نقاط الطالب مقسّم حسب الفئة (حضور، فجر، سلوك...) — يظهر بس لما نفلتر السجل حسب طالب معيّن
+function renderLogCategorySummary(entries) {
+  const el = document.getElementById('log-category-summary');
+  if (!el) return;
+  const studentEntries = entries.filter(l => l.meta && l.meta.kind === 'student');
+  if (!studentEntries.length) { el.innerHTML = ''; return; }
+
+  const byCat = {};
+  studentEntries.forEach(l => {
+    const cat = extractCategoryFromLogText(l.text);
+    if (!cat) return;
+    if (!byCat[cat]) byCat[cat] = { points: 0, count: 0 };
+    byCat[cat].points += (l.meta.change || 0);
+    byCat[cat].count += 1;
+  });
+
+  const catIcons = {
+    'حضور وانتظام': '📅', '🕌 صلاة الفجر': '🕌', 'مشاركة في درس أو نشاط': '🎯',
+    'حفظ قرآن / أذكار': '📖', 'أخلاق وسلوك': '🌸', 'تميّز ومبادرة': '💡'
+  };
+  const cats = Object.entries(byCat).sort((a,b) => b[1].points - a[1].points);
+  if (!cats.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div class="section-label" style="margin-top:2px">📊 ملخّص حسب الفئة</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${cats.map(([cat, d]) => `
+        <div style="background:var(--gray-soft);border-radius:12px;padding:10px;text-align:center">
+          <div style="font-size:1.15rem;font-weight:900;color:${d.points < 0 ? '#b8462f' : 'var(--green-deep)'}" class="pts-val">${d.points} نقطة</div>
+          <div style="font-size:0.72rem;color:var(--gray-text);font-weight:700">${catIcons[cat] || '🔹'} ${cat} (${d.count})</div>
+        </div>`).join('')}
+    </div>`;
 }
 
 function resetLogFilters() {
