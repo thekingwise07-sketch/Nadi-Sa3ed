@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-06-02">
+<meta name="app-build" content="2026-07-07-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -604,7 +604,7 @@
 <!-- ===================== شاشة تسجيل الدخول ===================== -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo"><img src="logo.png" alt="شعار المسجد" style="width:66%;height:66%;object-fit:contain"></div>
+    <div class="login-logo"><img src="logo-login.png" alt="شعار المسجد" style="width:58%;height:58%;object-fit:contain;filter:brightness(0) invert(1)"></div>
     <div class="login-title">النادي الصيفي</div>
     <div class="login-sub">مسجد سعيد أرحيل — نظام النقاط</div>
 
@@ -701,15 +701,6 @@
     <button class="btn btn-gold" style="margin-top:10px" onclick="startNewWeek()">🔄 بدء أسبوع جديد (أرشفة بدون فقد بيانات)</button>
   </div>
 
-  <!-- تصفير الحضور (إعادة تصنيف سجلات الحضور القديمة) -->
-  <div class="card">
-    <div class="card-title">🔄 تصفير الحضور</div>
-    <p style="font-size:0.82rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
-      يحوّل كل سجلات "حضور وانتظام" القديمة إلى فئة "مشاركة في درس أو نشاط" — نقاط الطلاب الكلية تبقى محفوظة بدون أي تغيير، وفقط عداد مرات الحضور (للشارات والتنبيهات) يرجع للصفر للجميع.
-    </p>
-    <button class="btn btn-danger" onclick="resetAttendanceCounts()">🔄 تصفير الحضور للجميع</button>
-  </div>
-
   <!-- Top 3 -->
   <div class="card">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
@@ -800,7 +791,7 @@
       <button class="cat-btn" onclick="selectBulkCat(this,'حفظ قرآن / أذكار')"><span class="cat-icon">📖</span>حفظ قرآن / أذكار</button>
       <button class="cat-btn" onclick="selectBulkCat(this,'أخلاق وسلوك')"><span class="cat-icon">🌸</span>أخلاق وسلوك</button>
       <button class="cat-btn" onclick="selectBulkCat(this,'تميّز ومبادرة')"><span class="cat-icon">💡</span>تميّز ومبادرة</button>
-      <button class="cat-btn" onclick="selectBulkCat(this,'أخرى')"><span class="cat-icon">✏️</span>أخرى</button>
+      <button class="cat-btn" onclick="selectBulkCat(this,'🕌 صلاة الفجر')"><span class="cat-icon">🕌</span>صلاة الفجر</button>
     </div>
 
     <div class="section-label">عدد النقاط لكل طالب</div>
@@ -885,7 +876,7 @@
     <select id="log-filter-team" onchange="renderLog()">
       <option value="">كل الفرق</option>
     </select>
-    <select id="log-filter-student" onchange="renderLog()">
+    <select id="log-filter-student" onchange="logCategoryFilter=null;renderLog()">
       <option value="">كل الطلاب</option>
     </select>
     <input type="date" id="log-filter-date" onchange="renderLog()">
@@ -2676,26 +2667,6 @@ async function startNewWeek() {
 
 // تصفير عداد الحضور: يحوّل كل سجلات "حضور وانتظام" بالسجل إلى فئة "مشاركة في درس أو نشاط"
 // نقاط الطلاب الكلية لا تتغيّر أبداً — فقط تصنيف السجل يتغيّر، فيرجع عداد الحضور (والشارات والتنبيهات المعتمدة عليه) للصفر تلقائياً
-async function resetAttendanceCounts() {
-  const affected = state.log.filter(l =>
-    l.meta && l.meta.kind === 'student' && l.meta.change > 0 && l.text.includes('حضور وانتظام')
-  ).length;
-
-  if (!affected) { toast('لا توجد سجلات حضور لتصفيرها'); return; }
-
-  if (!await customConfirm(`سيتم تحويل ${affected} سجل "حضور وانتظام" إلى "مشاركة في درس أو نشاط".\n\nنقاط الطلاب الكلية لن تتغيّر، وفقط عداد الحضور سيرجع للصفر.`, '🔄')) return;
-
-  state.log.forEach(l => {
-    if (l.meta && l.meta.kind === 'student' && l.meta.change > 0 && l.text.includes('حضور وانتظام')) {
-      l.text = l.text.replace('حضور وانتظام', 'مشاركة في درس أو نشاط');
-    }
-  });
-
-  logEntry('🔄', `تم تصفير عداد الحضور لجميع الطلاب (إعادة تصنيف ${affected} سجل)`);
-  save(); render();
-  toast('✅ تم تصفير الحضور — النقاط الكلية محفوظة بالكامل');
-}
-
 // حذف سطر واحد من السجل + التراجع عن أثره على النقاط (إن وُجد)
 async function removeLogEntry(id) {
   const entry = state.log.find(l => l.id === id);
@@ -3159,6 +3130,10 @@ function renderLog() {
   if (dateFilter) {
     filtered = filtered.filter(l => l.isoDate === dateFilter);
   }
+  // فلترة إضافية حسب الفئة (لما نضغط على صندوق بالملخّص) — تشتغل فوق أي فلترة تانية موجودة
+  if (logCategoryFilter) {
+    filtered = filtered.filter(l => extractCategoryFromLogText(l.text) === logCategoryFilter);
+  }
 
   if (!filtered.length) {
     const summaryEl = document.getElementById('log-category-summary');
@@ -3167,9 +3142,25 @@ function renderLog() {
     return;
   }
 
-  renderLogCategorySummary(studentFilter ? filtered : []);
+  // الملخّص بيبنى دايماً من نتائج فلترة الطالب/الفريق/التاريخ (بدون فلتر الفئة نفسه)،
+  // حتى لو ضغطنا فئة معيّنة يضل الملخّص كامل وواضح وين إحنا فلترين بالضبط
+  const summarySource = state.log.slice().filter(l => studentFilter || !(l.meta && l.meta.hidden));
+  let summaryBase = isRaed ? summarySource : summarySource.filter(l => !l.privateCorrection);
+  if (teamFilter) {
+    summaryBase = summaryBase.filter(l => l.meta && (
+      (l.meta.kind === 'team' && String(l.meta.teamId) === teamFilter) ||
+      (l.meta.kind === 'student' && String(l.meta.teamId) === teamFilter)
+    ));
+  }
+  if (studentFilter) summaryBase = summaryBase.filter(l => l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === studentFilter);
+  if (dateFilter) summaryBase = summaryBase.filter(l => l.isoDate === dateFilter);
+  renderLogCategorySummary(studentFilter ? summaryBase : []);
 
-  el.innerHTML = filtered.slice(0, 80).map(l => {
+  el.innerHTML = (logCategoryFilter ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#fbecc9;border:2px solid var(--gold);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#7a5a12">
+      <span>🔍 مفلتر حسب فئة: ${logCategoryFilter}</span>
+      <button onclick="setLogCategoryFilter(null)" style="background:none;border:none;color:#b8462f;font-weight:900;cursor:pointer;font-size:0.9rem">✕ إلغاء</button>
+    </div>` : '') + filtered.slice(0, 80).map(l => {
     const adminTag = l.adminName ? `<span style="background:#e6f4ef;color:var(--green-mid);border-radius:6px;padding:1px 6px;font-size:0.68rem;font-weight:700;margin-right:4px">👤 ${l.adminName}</span>` : '';
     const dateLabel = l.isoDate ? new Date(l.isoDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }) : '';
     return `<div class="log-item" style="justify-content:space-between">
@@ -3190,6 +3181,13 @@ function extractCategoryFromLogText(text) {
   const parts = text.split('|');
   if (parts.length < 2) return null;
   return parts[1].trim().replace(/\s*\(.*\)\s*$/, '').trim();
+}
+
+// فلتر الفئة الحالي بالسجل — يتفعّل بالضغط على صندوق بالملخّص، null يعني بلا فلترة
+let logCategoryFilter = null;
+function setLogCategoryFilter(cat) {
+  logCategoryFilter = (logCategoryFilter === cat) ? null : cat; // ضغطة تانية على نفس الفئة تلغي الفلترة
+  renderLog();
 }
 
 // ملخّص نقاط الطالب مقسّم حسب الفئة (حضور، فجر، سلوك...) — يظهر بس لما نفلتر السجل حسب طالب معيّن
@@ -3216,10 +3214,10 @@ function renderLogCategorySummary(entries) {
   if (!cats.length) { el.innerHTML = ''; return; }
 
   el.innerHTML = `
-    <div class="section-label" style="margin-top:2px">📊 ملخّص حسب الفئة</div>
+    <div class="section-label" style="margin-top:2px">📊 ملخّص حسب الفئة (اضغط لعرض سجل الفئة بس)</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
       ${cats.map(([cat, d]) => `
-        <div style="background:var(--gray-soft);border-radius:12px;padding:10px;text-align:center">
+        <div onclick="setLogCategoryFilter('${cat}')" style="cursor:pointer;background:${logCategoryFilter === cat ? 'var(--gold-soft)' : 'var(--gray-soft)'};border:2px solid ${logCategoryFilter === cat ? 'var(--gold)' : 'transparent'};border-radius:12px;padding:10px;text-align:center;transition:all 0.15s">
           <div style="font-size:1.15rem;font-weight:900;color:${d.points < 0 ? '#b8462f' : 'var(--green-deep)'}" class="pts-val">${d.points} نقطة</div>
           <div style="font-size:0.72rem;color:var(--gray-text);font-weight:700">${catIcons[cat] || '🔹'} ${cat} (${d.count})</div>
         </div>`).join('')}
@@ -3230,6 +3228,7 @@ function resetLogFilters() {
   document.getElementById('log-filter-team').value = '';
   document.getElementById('log-filter-student').value = '';
   document.getElementById('log-filter-date').value = '';
+  logCategoryFilter = null;
   renderLog();
 }
 
