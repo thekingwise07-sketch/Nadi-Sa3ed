@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-07-01">
+<meta name="app-build" content="2026-07-08-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -884,6 +884,7 @@
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
       <button class="btn btn-sm btn-danger" onclick="clearLog()">🗑️ مسح السجل</button>
     </div>
+    <div id="log-backups-list"></div>
     <div id="log-category-summary"></div>
     <div id="log-list"></div>
   </div>
@@ -1264,6 +1265,7 @@ function ensureFields() {
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
   if (!state.rulesConfig) state.rulesConfig = defaultRulesConfig();
   if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
+  if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
@@ -2623,9 +2625,51 @@ function logEntry(icon, text, meta, privateCorrection) {
 }
 
 async function clearLog() {
-  if (!await customConfirm('مسح كل السجل؟', '🗑️')) return;
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ مسح السجل بالكامل متاح لرائد فقط'); return; }
+  if (!await customConfirm('مسح كل السجل؟\n\nرح تنحفظ نسخة احتياطية تلقائية قبل الحذف، وبتقدر تسترجعها من "النسخ الاحتياطية" تحت لو احتجت.', '🗑️')) return;
+
+  // نسخة احتياطية تلقائية قبل أي عملية مسح خطيرة للسجل — حماية من الحذف بالغلط
+  if (!state.logBackups) state.logBackups = [];
+  state.logBackups.unshift({
+    id: Date.now(),
+    label: `نسخة قبل مسح السجل — ${new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'short', year:'numeric' })} ${new Date().toLocaleTimeString('ar', { hour:'2-digit', minute:'2-digit' })}`,
+    log: JSON.parse(JSON.stringify(state.log))
+  });
+  if (state.logBackups.length > 10) state.logBackups.pop(); // نحتفظ بآخر 10 نسخ بس لتفادي تضخم البيانات
+
   state.log = [];
   save(); render();
+  toast('✅ تم مسح السجل (نسخة احتياطية محفوظة تحت)');
+}
+
+// استرجاع نسخة احتياطية قديمة من السجل — رائد فقط
+async function restoreLogBackup(backupId) {
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ الاسترجاع متاح لرائد فقط'); return; }
+  const backup = (state.logBackups || []).find(b => b.id === backupId);
+  if (!backup) return;
+  if (!await customConfirm(`استرجاع "${backup.label}"؟\n\nرح يستبدل السجل الحالي (${state.log.length} سطر) بالنسخة المحفوظة (${backup.log.length} سطر). أي سطر تسجّل بعد وقت هاي النسخة رح يضيع.`, '↩️')) return;
+  state.log = JSON.parse(JSON.stringify(backup.log));
+  save(); render();
+  toast('✅ تم استرجاع السجل');
+}
+
+function renderLogBackups() {
+  const el = document.getElementById('log-backups-list');
+  if (!el) return;
+  const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
+  if (!isRaed) { el.innerHTML = ''; return; }
+  const backups = state.logBackups || [];
+  if (!backups.length) { el.innerHTML = '<p style="font-size:0.76rem;color:var(--gray-text);margin-top:6px">لا توجد نسخ احتياطية بعد — بتتكوّن تلقائياً كل ما تمسح السجل بالكامل.</p>'; return; }
+  el.innerHTML = `
+    <div class="section-label" style="margin-top:10px">🗄️ نسخ احتياطية للسجل (رائد فقط)</div>
+    ${backups.map(b => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--gray-soft);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div>
+          <div style="font-weight:700;font-size:0.8rem">${b.label}</div>
+          <div style="font-size:0.72rem;color:var(--gray-text)">${b.log.length} سطر محفوظ</div>
+        </div>
+        <button class="btn btn-sm" style="width:auto;flex-shrink:0;background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)" onclick="restoreLogBackup(${b.id})">↩️ استرجاع</button>
+      </div>`).join('')}`;
 }
 
 // ===================== الأسابيع (أرشيف بدون فقد بيانات) =====================
@@ -3071,7 +3115,7 @@ function renderTeamsList() {
               onkeydown="if(event.key==='Enter'){this.blur()}">
           </div>
           <div class="team-pts" style="color:${ptsColor}">${t.points} <span style="font-size:1rem;font-weight:500">نقطة</span></div>
-          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${m.name.split(' ')[0]}</span>`).join('، ') : ''}</div>
+          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${m.name}</span>`).join('، ') : ''}</div>
           <div class="team-leaders">
             <div><span class="lbl">👑 القائد: </span>${leader ? `<b class="clickable-name" onclick="openStudentModal(${leader.id})">${leader.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
             <div><span class="lbl">🥈 نائب القائد: </span>${vice ? `<b class="clickable-name" onclick="openStudentModal(${vice.id})">${vice.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
@@ -3103,6 +3147,7 @@ function renderTeamsList() {
 
 function renderLog() {
   const el = document.getElementById('log-list');
+  renderLogBackups();
   if (!state.log.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>السجل فارغ</p></div>';
     return;
