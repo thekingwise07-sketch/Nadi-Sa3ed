@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-08-01">
+<meta name="app-build" content="2026-07-09-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -757,6 +757,10 @@
     </div>
     <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
     <div id="attendance-streak-hint" style="display:none;background:#fbeedc;border:1px solid #eda355;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#6b4a12;margin-bottom:10px;line-height:1.5"></div>
+    <label id="streak-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
+      <input type="checkbox" id="pts-streak" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
+      🔥 زيادة السترايك (+1 يوم متتالي)
+    </label>
     <label id="hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fbeedc;border:2px dashed #eda355;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#6b4a12;cursor:pointer">
       <input type="checkbox" id="pts-hidden-correction" style="width:20px;height:20px;accent-color:#eda355;margin:0">
       🙈 تصحيح خاص (ما تظهر هالعملية بسجل باقي المشرفين)
@@ -803,6 +807,10 @@
       <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickBulkPts(10)">+10</button>
     </div>
     <input type="number" id="bulk-amount" placeholder="عدد النقاط لكل طالب" min="1" value="1">
+    <label id="bulk-streak-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
+      <input type="checkbox" id="bulk-streak" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
+      🔥 زيادة السترايك للكل (+1 يوم متتالي لكل طالب محدد)
+    </label>
     <input type="text" id="bulk-note" placeholder="ملاحظة (اختياري)">
     <button class="btn btn-gold" onclick="giveBulkPoints()">🎯 منح النقاط للمحددين</button>
   </div>
@@ -1576,21 +1584,11 @@ function studentAttendedOn(studentId, isoDate) {
 // يبدأ العدّ من آخر يوم نادي فعلي (getClubDays، الأحدث أولاً) ويتراجع للخلف
 // طالما الطالب حاضر في كل يوم نادي، يستمر العدّ. أول يوم نادي تغيّب فيه الطالب يوقف العدّ فوراً.
 // لا علاقة لهذا العداد بعدد أيام التقويم بينهما — فقط تتابع أيام النادي الفعلية بدون انقطاع.
+// السترايك صار رقم يدوي بالكامل — يزيد فقط لما مشرف يأشّر خانة "زيادة السترايك" وقت منح
+// نقاط حضور، وما بينكسر تلقائياً أبداً حتى لو انقطع الطالب (لازم رائد يعدله يدوياً لو حاب)
 function studentStreakOf(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
-  if (student && student.streakOverride !== undefined && student.streakOverride !== null) {
-    return student.streakOverride; // تعديل يدوي من المشرف يتجاوز الحساب التلقائي
-  }
-  const clubDays = getClubDays(); // الأحدث أولاً
-  let streak = 0;
-  for (const day of clubDays) {
-    if (studentAttendedOn(studentId, day)) {
-      streak++;
-    } else {
-      break; // أول انقطاع يوقف التتابع
-    }
-  }
-  return streak;
+  return (student && student.streak) || 0;
 }
 
 // تعديل يدوي لسترايك الحضور (لو صار خطأ بالتسجيل التلقائي)
@@ -1599,17 +1597,12 @@ async function editStreakManually(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = studentStreakOf(studentId);
-  const input = prompt(`عدّل عدد أيام السترايك المتتالية لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
+  const input = prompt(`عدّل عدد أيام السترايك المتتالية لـ ${student.name}`, current);
   if (input === null) return; // إلغاء
-  if (input.trim() === '') {
-    delete student.streakOverride;
-    logEntry('🔄', `${student.name}: رجّع سترايك الحضور للحساب التلقائي`);
-  } else {
-    const val = parseInt(input, 10);
-    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
-    student.streakOverride = val;
-    logEntry('✏️', `${student.name}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
-  }
+  const val = parseInt(input, 10);
+  if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+  student.streak = val;
+  logEntry('✏️', `${student.name}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
   save(); render();
   toast('✅ تم تحديث السترايك');
 }
@@ -1706,7 +1699,9 @@ function customConfirm(message, icon = '⚠️') {
 
 function goalsOfStudent(studentId) {
   let total = 0;
-  (state.league.matches || []).forEach(m => {
+  const t = state.league.tournament;
+  const matches = t ? (t.matches || []) : [];
+  matches.forEach(m => {
     if (m.status !== 'played') return;
     (m.scorers || []).forEach(sc => {
       if (String(sc.studentId) === String(studentId)) total += (sc.goals || 0);
@@ -1877,7 +1872,7 @@ function openStudentModal(studentId) {
         <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fbeedc,#ffe0b2);border:1px solid #eda355' : ''}">
           ${isRaed ? `<button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
-          <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}${s.streakOverride !== undefined && s.streakOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
+          <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
         <div class="pmodal-stat soon" style="grid-column:1 / -1">
           <div class="pmodal-stat-num">📖 0</div>
@@ -2026,6 +2021,15 @@ function selectBulkCat(btn, cat) {
   document.querySelectorAll('#bulk-cat-grid .cat-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   selectedBulkCat = cat;
+  updateBulkStreakCheckboxVisibility();
+}
+
+function updateBulkStreakCheckboxVisibility() {
+  const wrap = document.getElementById('bulk-streak-check-wrap');
+  if (!wrap) return;
+  const isAttendance = selectedBulkCat === 'حضور وانتظام';
+  wrap.style.display = isAttendance ? 'flex' : 'none';
+  if (!isAttendance) { const cb = document.getElementById('bulk-streak'); if (cb) cb.checked = false; }
 }
 
 function setQuickBulkPts(n) {
@@ -2064,10 +2068,20 @@ function giveBulkPoints() {
       kind: 'student', studentId: s.id, teamId: s.teamId || null, change: amt, hidden: true
     });
   });
+
+  const streakChecked = selectedBulkCat === 'حضور وانتظام' && document.getElementById('bulk-streak')?.checked;
+  if (streakChecked) {
+    students.forEach(s => {
+      s.streak = (s.streak || 0) + 1;
+    });
+    logEntry('🔥', `زيادة السترايك يدوياً لـ ${students.length} طالب (منح جماعي)`);
+  }
+
   save(); render();
-  toast(`✅ تم منح ${amt} نقطة لـ ${students.length} طالب`);
+  toast(`✅ تم منح ${amt} نقطة لـ ${students.length} طالب${streakChecked ? ' 🔥' : ''}`);
   document.getElementById('bulk-amount').value = 1;
   document.getElementById('bulk-note').value = '';
+  if (document.getElementById('bulk-streak')) document.getElementById('bulk-streak').checked = false;
 }
 
 // === بطاقة الطالب (وضع العرض العام) ===
@@ -2284,6 +2298,22 @@ function switchToHomeOnly() {
 }
 
 // ===================== TABS =====================
+// انتقال مباشر من قائمة الفرق لصفحة النقاط، مع تحديد الفريق تلقائياً وسكرول لقسم النقاط الجماعية للفريق
+function goToTeamPoints(teamId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const tab = document.querySelector('.tabs .tab[onclick*="add-points"]');
+  if (tab) tab.classList.add('active');
+  document.getElementById('page-add-points').classList.add('active');
+  render();
+  setTimeout(() => {
+    const sel = document.getElementById('pts-team');
+    if (sel) sel.value = teamId;
+    const section = sel ? sel.closest('.card') : null;
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
+}
+
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2299,6 +2329,16 @@ function selectCat(btn, cat) {
   btn.classList.add('selected');
   selectedCat = cat;
   maybeSuggestAttendancePoints();
+  updateStreakCheckboxVisibility();
+}
+
+// خانة "زيادة السترايك" تظهر بس لما الفئة المختارة تكون "حضور وانتظام" — بما إنه السترايك صار يدوي بالكامل
+function updateStreakCheckboxVisibility() {
+  const wrap = document.getElementById('streak-check-wrap');
+  if (!wrap) return;
+  const isAttendance = selectedCat === 'حضور وانتظام';
+  wrap.style.display = isAttendance ? 'flex' : 'none';
+  if (!isAttendance) { const cb = document.getElementById('pts-streak'); if (cb) cb.checked = false; }
 }
 
 function setQuickPts(n) {
@@ -2577,6 +2617,7 @@ async function givePoints(dir) {
   }
 
   const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-hidden-correction')?.checked;
+  const streakChecked = dir === 1 && selectedCat === 'حضور وانتظام' && document.getElementById('pts-streak')?.checked;
   const noteText = note ? ` (${note})` : '';
   const icon = dir === 1 ? '⭐' : '➖';
   const sign = dir === 1 ? '+' : '-';
@@ -2584,11 +2625,17 @@ async function givePoints(dir) {
     kind: 'student', studentId: student.id, teamId: student.teamId || null, change
   }, isHiddenCorrection);
 
+  if (streakChecked) {
+    student.streak = (student.streak || 0) + 1;
+    logEntry('🔥', `${student.name}: زيادة السترايك يدوياً إلى ${student.streak} ${student.streak === 1 ? 'يوم' : 'أيام'}`, null, isHiddenCorrection);
+  }
+
   save(); render();
   document.getElementById('pts-amount').value = 1;
   document.getElementById('pts-note').value = '';
   if (document.getElementById('pts-hidden-correction')) document.getElementById('pts-hidden-correction').checked = false;
-  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${isHiddenCorrection ? ' 🙈' : ''}`);
+  if (document.getElementById('pts-streak')) document.getElementById('pts-streak').checked = false;
+  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${streakChecked ? ' 🔥' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
 }
 
 function giveTeamPoints(dir) {
@@ -2756,6 +2803,8 @@ function toast(msg) {
 // ===================== RENDER =====================
 function render() {
   renderSelects();
+  updateStreakCheckboxVisibility();
+  updateBulkStreakCheckboxVisibility();
   renderHome();
   renderStudentsList();
   renderStudentBtns();
@@ -3122,6 +3171,7 @@ function renderTeamsList() {
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-direction:column;align-items:stretch;flex-shrink:0">
+          <button class="btn btn-sm" style="background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)" onclick="goToTeamPoints(${t.id})">⭐ نقاط</button>
           <label class="btn btn-sm" style="background:white;border:1px solid ${teamColor};display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:5px 10px">
             🎨 لون
             <input type="color" value="${teamColor}" style="width:22px;height:22px;padding:0;border:none;border-radius:6px;cursor:pointer;background:none"
@@ -3549,25 +3599,18 @@ function computeStandings(matches, teamIds) {
 function renderTeamOfWeek() {
   const el = document.getElementById('league-team-of-week');
   if (!el) return;
-  const t = state.league.tournament;
-  const allMatches = t ? t.matches : [];
-  const weekMatches = allMatches.filter(m => m.status === 'played' && m.date >= state.currentWeekStart.slice(0,10));
-  if (!weekMatches.length) {
-    el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-icon">⚽</div><p>لا توجد نتائج مباريات هذا الأسبوع بعد</p></div>';
+  const teamsByWeek = state.teams.slice().sort((a,b) => weekPointsOf(b) - weekPointsOf(a));
+  const top = teamsByWeek.find(t => weekPointsOf(t) > 0);
+  if (!top) {
+    el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-icon">🏆</div><p>لا توجد نتائج لهذا الأسبوع بعد</p></div>';
     return;
   }
-  const standings = computeStandings(weekMatches).filter(r => r.played > 0);
-  if (!standings.length) {
-    el.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد نتائج كافية بعد</p></div>';
-    return;
-  }
-  const top = standings[0];
-  const team = state.teams.find(t => t.id == top.teamId);
-  el.innerHTML = `<div class="team-card" style="background:${(team.color||'#2fae8f')}1a;border-right-color:${team.color||'#2fae8f'}">
+  const members = state.students.filter(s => String(s.teamId) === String(top.id)).length;
+  el.innerHTML = `<div class="team-card" style="background:${(top.color||'#2fae8f')}1a;border-right-color:${top.color||'#2fae8f'}">
     <div class="team-name" style="display:flex;align-items:center;gap:8px">
-      <span class="team-color-dot" style="background:${team.color||'#2fae8f'};width:16px;height:16px"></span>🏆 ${team.name}
+      <span class="team-color-dot" style="background:${top.color||'#2fae8f'};width:16px;height:16px"></span>🏆 ${top.name}
     </div>
-    <div class="team-count">${top.points} نقطة دوري هذا الأسبوع (${top.wins} فوز - ${top.draws} تعادل - ${top.losses} خسارة) | أهداف: ${top.gf} - ${top.ga}</div>
+    <div class="team-count">${weekPointsOf(top)} نقطة هذا الأسبوع | ${members} عضو</div>
   </div>`;
 }
 

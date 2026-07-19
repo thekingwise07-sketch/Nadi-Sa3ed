@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-05-05">
+<meta name="app-build" content="2026-07-09-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -412,6 +412,12 @@
   </div>
 
   <div class="card">
+    <div class="card-title">🕌 أعلى الطلاب حضوراً للفجر</div>
+    <div id="home-fajr-leaders"></div>
+    <button class="btn-share" id="fajr-leaders-toggle-btn" style="display:none;background:var(--green-mid);margin-top:10px" onclick="toggleFajrLeadersExpanded()"></button>
+  </div>
+
+  <div class="card">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
     <div id="home-top-students"></div>
   </div>
@@ -620,6 +626,7 @@ let state = {
 let rankMode = 'students';
 let leagueTab = 'played';
 let scorersExpanded = false;
+let fajrLeadersExpanded = false;
 let currentScreen = 'home';
 
 function startOfWeekISO(d) {
@@ -736,16 +743,7 @@ function studentAttendedOn(studentId, isoDate) {
 // سترايك الحضور (أيام نادي متتالية بدون انقطاع، بنفس منطق admin.html)
 function studentStreakOf(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
-  if (student && student.streakOverride !== undefined && student.streakOverride !== null) {
-    return student.streakOverride; // تعديل يدوي من المشرف يتجاوز الحساب التلقائي
-  }
-  const clubDays = getClubDays();
-  let streak = 0;
-  for (const day of clubDays) {
-    if (studentAttendedOn(studentId, day)) streak++;
-    else break;
-  }
-  return streak;
+  return (student && student.streak) || 0;
 }
 
 function goalsOfStudent(studentId) {
@@ -823,6 +821,56 @@ function toggleScorersExpanded() {
   renderLeagueScorers();
 }
 
+function toggleFajrLeadersExpanded() {
+  fajrLeadersExpanded = !fajrLeadersExpanded;
+  renderFajrLeaders();
+}
+
+// أعلى الطلاب حضوراً لصلاة الفجر — أول 10 افتراضياً مع زر "إظهار المزيد"
+function renderFajrLeaders() {
+  const el = document.getElementById('home-fajr-leaders');
+  const btn = document.getElementById('fajr-leaders-toggle-btn');
+  if (!el) return;
+
+  const entries = state.students
+    .map(s => ({ student: s, count: fajrCountOf(s.id) }))
+    .filter(e => e.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  if (!entries.length) {
+    el.innerHTML = `<div class="empty" style="padding:16px"><div class="empty-icon">🕌</div><p>لا يوجد طلاب مسجَّلين لصلاة الفجر بعد</p></div>`;
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  const visibleCount = fajrLeadersExpanded ? entries.length : Math.min(10, entries.length);
+  const visible = entries.slice(0, visibleCount);
+
+  el.innerHTML = visible.map((e, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+    const t = teamOf(e.student);
+    const avatarHTML = e.student.photo ? `<img src="${e.student.photo}">` : initialsOf(e.student.name);
+    return `
+    <div class="list-item">
+      <div class="list-rank ${rankClass}">${medal}</div>
+      <div class="list-avatar">${avatarHTML}</div>
+      <div class="list-info">
+        <div class="list-name">${escapeHTML(e.student.name)}</div>
+        <div class="list-sub">${t ? `<span class="team-color-dot" style="background:${t.color||'#1f6b41'}"></span>${escapeHTML(t.name)}` : ''}</div>
+      </div>
+      <div class="list-pts"><b>${e.count}</b><span>مرة</span></div>
+    </div>`;
+  }).join('');
+
+  if (entries.length > 10) {
+    btn.style.display = 'flex';
+    btn.textContent = fajrLeadersExpanded ? '🔼 إظهار أقل' : `🔽 إظهار المزيد (${entries.length - 10} إضافي)`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
 // ===================== RENDER: HOME =====================
 function renderHome() {
   document.getElementById('h-students').textContent = state.students.length;
@@ -867,6 +915,9 @@ function renderHome() {
         <div class="list-pts"><b>${weekPointsOf(topTeamWeek)}</b><span>نقطة بالأسبوع</span></div>
       </div>`;
   }
+
+  // أعلى الطلاب حضوراً للفجر
+  renderFajrLeaders();
 
   // أعلى الطلاب
   const sortedStudents = state.students.slice().sort((a,b) => b.points - a.points).slice(0,5);
