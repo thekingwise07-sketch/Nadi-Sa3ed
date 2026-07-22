@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-09-01">
+<meta name="app-build" content="2026-07-10-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -940,12 +940,11 @@
 
   <div class="divider"></div>
 
-  <div class="card">
+  <div class="card" id="match-form-card" style="display:none">
     <div class="card-title" id="match-form-title" style="justify-content:space-between">
-      <span>📝 تسجيل / جدولة مباراة</span>
-      <button class="btn btn-sm" id="match-cancel-edit-btn" style="display:none;width:auto;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="cancelEditMatch()">✖ إلغاء التعديل</button>
+      <span>✏️ تعديل مباراة دوري الرجال</span>
+      <button class="btn btn-sm" id="match-cancel-edit-btn" style="width:auto;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="cancelEditMatch()">✖ إلغاء التعديل</button>
     </div>
-    <div id="match-edit-banner" style="display:none;background:#fbecc9;border:1px solid #eab648;border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#5c4512;font-weight:700;margin-bottom:10px">✏️ أنت الآن تعدّل على مباراة محفوظة</div>
     <input type="hidden" id="match-edit-id" value="">
     <input type="hidden" id="match-edit-tournament" value="">
     <div class="section-label">الفريق الأول</div>
@@ -984,17 +983,6 @@
     </div>
 
     <button class="btn btn-primary" id="match-save-btn" onclick="saveMatch()">💾 حفظ المباراة</button>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📅 المباريات القادمة</div>
-    <div id="upcoming-matches-list"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📊 نتائج المباريات السابقة</div>
-
-    <div id="played-matches-list"></div>
   </div>
 
 </div>
@@ -1275,7 +1263,6 @@ function ensureFields() {
   if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
   if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
-  if (!state.league.matches) state.league.matches = [];
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
   if (state.league.tournament === undefined) state.league.tournament = null;
@@ -1602,7 +1589,7 @@ async function editStreakManually(studentId) {
   const val = parseInt(input, 10);
   if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
   student.streak = val;
-  logEntry('✏️', `${student.name}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
+  logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
   save(); render();
   toast('✅ تم تحديث السترايك');
 }
@@ -1637,7 +1624,7 @@ function renderAlerts() {
     state.students.forEach(s => {
       const missedAll3 = last3.every(d => !studentAttendedOn(s.id, d));
       if (missedAll3) {
-        alerts.push(`<div class="alert-item"><span class="alert-icon">⚠️</span><div class="alert-text"><b>${s.name}</b> لم يحضر آخر 3 مواعيد متتالية</div></div>`);
+        alerts.push(`<div class="alert-item"><span class="alert-icon">⚠️</span><div class="alert-text"><b>${escapeHTML(s.name)}</b> لم يحضر آخر 3 مواعيد متتالية</div></div>`);
       }
     });
   }
@@ -1752,12 +1739,12 @@ async function editFajrManually(studentId) {
   if (input === null) return;
   if (input.trim() === '') {
     delete student.fajrOverride;
-    logEntry('🔄', `${student.name}: رجّع عدد مرات صلاة الفجر للحساب التلقائي`);
+    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات صلاة الفجر للحساب التلقائي`);
   } else {
     const val = parseInt(input, 10);
     if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
     student.fajrOverride = val;
-    logEntry('✏️', `${student.name}: تعديل يدوي لعدد مرات صلاة الفجر إلى ${val}`);
+    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات صلاة الفجر إلى ${val}`);
   }
   save(); render();
   toast('✅ تم تحديث عدد مرات صلاة الفجر');
@@ -1774,12 +1761,12 @@ async function editAttendanceManually(studentId) {
   if (input === null) return;
   if (input.trim() === '') {
     delete student.attendanceOverride;
-    logEntry('🔄', `${student.name}: رجّع عدد مرات الحضور للحساب التلقائي`);
+    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات الحضور للحساب التلقائي`);
   } else {
     const val = parseInt(input, 10);
     if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
     student.attendanceOverride = val;
-    logEntry('✏️', `${student.name}: تعديل يدوي لعدد مرات الحضور إلى ${val}`);
+    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات الحضور إلى ${val}`);
   }
   save(); render();
   toast('✅ تم تحديث عدد مرات الحضور');
@@ -1797,7 +1784,7 @@ async function addCustomBadge(studentId) {
   if (label === null || !label.trim()) return;
   if (!student.customBadges) student.customBadges = [];
   student.customBadges.push({ icon: icon.trim(), label: label.trim() });
-  logEntry('🏅', `${student.name}: إضافة وسام مخصّص "${icon.trim()} ${label.trim()}"`);
+  logEntry('🏅', `${escapeHTML(student.name)}: إضافة وسام مخصّص "${escapeHTML(icon.trim())} ${escapeHTML(label.trim())}"`);
   save(); render();
   toast('✅ تم إضافة الوسام');
   openStudentModal(studentId);
@@ -1809,7 +1796,7 @@ function removeCustomBadge(studentId, index) {
   if (!student || !student.customBadges || !student.customBadges[index]) return;
   const removed = student.customBadges[index];
   student.customBadges.splice(index, 1);
-  logEntry('🗑️', `${student.name}: حذف وسام مخصّص "${removed.icon} ${removed.label}"`);
+  logEntry('🗑️', `${escapeHTML(student.name)}: حذف وسام مخصّص "${escapeHTML(removed.icon)} ${escapeHTML(removed.label)}"`);
   save(); render();
   toast('🗑 تم حذف الوسام');
   openStudentModal(studentId);
@@ -1827,7 +1814,7 @@ function openStudentModal(studentId) {
   const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
   const customBadges = s.customBadges || [];
   const initials = s.name.split(' ').slice(0,2).map(w => w[0]).join('');
-  const avatarHTML = s.photo ? `<img src="${s.photo}" alt="${s.name}">` : initials;
+  const avatarHTML = s.photo ? `<img src="${escapeHTML(s.photo)}" alt="${escapeHTML(s.name)}">` : escapeHTML(initials);
 
   let backdrop = document.getElementById('pmodal-backdrop');
   if (!backdrop) {
@@ -1843,8 +1830,8 @@ function openStudentModal(studentId) {
       <div class="student-card" style="margin:0;border-radius:20px 20px 0 0;position:relative">
         <button class="pmodal-close" onclick="closeStudentModal()">✕</button>
         <div class="student-card-avatar">${avatarHTML}</div>
-        <div class="student-card-name">${s.name}</div>
-        <div class="student-card-team">${team ? '🏅 ' + team.name : '— بلا فريق —'}</div>
+        <div class="student-card-name">${escapeHTML(s.name)}</div>
+        <div class="student-card-team">${team ? '🏅 ' + escapeHTML(team.name) : '— بلا فريق —'}</div>
       </div>
       <div class="pmodal-stats-grid">
         <div class="pmodal-stat">
@@ -1882,7 +1869,7 @@ function openStudentModal(studentId) {
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:${isRaed ? '8px' : '0'}">
             ${customBadges.map((b, i) => `
               <span style="background:#fbecc9;border:1px solid #e0b23e;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;color:#7a5a12;display:inline-flex;align-items:center;gap:6px">
-                ${b.icon} ${b.label}
+                ${escapeHTML(b.icon)} ${escapeHTML(b.label)}
                 ${isRaed ? `<button onclick="removeCustomBadge(${s.id},${i})" style="background:none;border:none;color:#b8462f;cursor:pointer;font-size:0.8rem;padding:0;line-height:1">✕</button>` : ''}
               </span>`).join('')}
           </div>
@@ -1921,7 +1908,7 @@ function renderStudentBtns() {
     .filter(s => !search || s.name.includes(search));
   grid.innerHTML = filtered.map(s => {
     const isSelected = String(s.id) === String(selectedStudentId);
-    return `<button class="student-pick-btn${isSelected ? ' selected' : ''}" onclick="pickStudent(${s.id})">${s.name}</button>`;
+    return `<button class="student-pick-btn${isSelected ? ' selected' : ''}" onclick="pickStudent(${s.id})">${escapeHTML(s.name)}</button>`;
   }).join('');
   updateSelectedLabel();
 }
@@ -1982,7 +1969,7 @@ function renderBulkStudents() {
   // من جديد نحدد الكل افتراضياً عند تغيير الفريق
   bulkExcluded = new Set();
   grid.innerHTML = students.map(s =>
-    `<button class="bulk-pick-btn" id="bulk-btn-${s.id}" onclick="toggleBulkStudent(${s.id})">${s.name}</button>`
+    `<button class="bulk-pick-btn" id="bulk-btn-${s.id}" onclick="toggleBulkStudent(${s.id})">${escapeHTML(s.name)}</button>`
   ).join('');
   updateBulkCount();
 }
@@ -2055,7 +2042,7 @@ function giveBulkPoints() {
     }
   });
 
-  const noteText = note ? ` (${note})` : '';
+  const noteText = note ? ` (${escapeHTML(note)})` : '';
   // سجل ملخّص واحد يظهر بسجل النشاط العام (كما كان سابقاً)
   logEntry('⭐', `منح جماعي +${amt} نقطة لـ ${students.length} طالب | ${selectedBulkCat}${noteText}`, {
     kind: 'bulk', studentIds: students.map(s => s.id), change: amt
@@ -2064,7 +2051,7 @@ function giveBulkPoints() {
   // عداد مرات الحضور (attendanceCountOf)، الشارات (getStudentBadges)، وكشف نقاط الأسبوع لكل طالب
   // ملاحظة: لا تُعرض هذه السجلات في "آخر الأحداث" العام لتفادي تكرار نفس الحدث بصرياً، لكنها تُحتسب في كل الحسابات المعتمدة على kind:'student'
   students.forEach(s => {
-    logEntry('⭐', `${s.name} +${amt} نقطة | ${selectedBulkCat}${noteText} (منح جماعي)`, {
+    logEntry('⭐', `${escapeHTML(s.name)} +${amt} نقطة | ${selectedBulkCat}${noteText} (منح جماعي)`, {
       kind: 'student', studentId: s.id, teamId: s.teamId || null, change: amt, hidden: true
     });
   });
@@ -2106,14 +2093,14 @@ function renderStudentCard() {
     const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
     const initials = s.name.split(' ').slice(0,2).map(w => w[0]).join('');
     const avatarHTML = s.photo
-      ? `<img src="${s.photo}" alt="${s.name}">`
-      : initials;
+      ? `<img src="${escapeHTML(s.photo)}" alt="${escapeHTML(s.name)}">`
+      : escapeHTML(initials);
 
     return `
     <div class="student-card" id="card-${s.id}">
       <div class="student-card-avatar">${avatarHTML}</div>
-      <div class="student-card-name">${s.name}</div>
-      <div class="student-card-team">${team ? '🏅 ' + team.name : '—'}</div>
+      <div class="student-card-name">${escapeHTML(s.name)}</div>
+      <div class="student-card-team">${team ? '🏅 ' + escapeHTML(team.name) : '—'}</div>
       <div class="student-card-stats">
         <div class="student-card-stat">
           <div class="student-card-stat-num">⭐ ${s.points}</div>
@@ -2236,7 +2223,7 @@ function applyPublicViewRestrictions() {
     'addStudent','removeStudent','changeStudentPhoto','givePoints','giveTeamPoints',
     'addTeam','removeTeam','saveTeamName','changeTeamColor','setTeamLeader',
     'confirmMoveStudent','toggleMoveStudent','startNewWeek','removeLogEntry','clearLog',
-    'importData','submitMatch','deleteMatch','setPlayerOfWeek','addScorerRow'
+    'importData','setPlayerOfWeek','addScorerRow'
   ];
   editFns.forEach(fn => { window[fn] = () => {}; });
 
@@ -2404,7 +2391,7 @@ async function addStudent() {
   }
   const student = { id: Date.now(), name, teamId, points: 0, photo };
   state.students.push(student);
-  logEntry('🧑', `تمت إضافة الطالب: ${name}`);
+  logEntry('🧑', `تمت إضافة الطالب: ${escapeHTML(name)}`);
   save(); render();
   document.getElementById('new-student-name').value = '';
   if (photoInput) photoInput.value = '';
@@ -2475,7 +2462,7 @@ async function confirmEditStudentName(id) {
   }
   const oldName = student.name;
   student.name = newName;
-  logEntry('✏️', `تعديل اسم الطالب: ${oldName} ← ${newName}`);
+  logEntry('✏️', `تعديل اسم الطالب: ${escapeHTML(oldName)} ← ${escapeHTML(newName)}`);
   save(); render();
   toast('✅ تم تعديل الاسم');
 }
@@ -2492,11 +2479,11 @@ async function confirmMoveStudent(id) {
 
   const oldTeam = state.teams.find(t => t.id == student.teamId);
   const newTeam = newTeamId ? state.teams.find(t => t.id == newTeamId) : null;
-  const fromText = oldTeam ? oldTeam.name : 'بدون فريق';
-  const toText = newTeam ? newTeam.name : 'بدون فريق';
+  const fromText = oldTeam ? escapeHTML(oldTeam.name) : 'بدون فريق';
+  const toText = newTeam ? escapeHTML(newTeam.name) : 'بدون فريق';
 
   const transferPts = student.points > 0
-    ? await customConfirm(`نقل ${student.name} إلى ${toText}\n\nهل تنقل نقاطه (${student.points} نقطة) معه إلى الفريق الجديد؟`, '🔄')
+    ? await customConfirm(`نقل ${escapeHTML(student.name)} إلى ${toText}\n\nهل تنقل نقاطه (${student.points} نقطة) معه إلى الفريق الجديد؟`, '🔄')
     : false;
 
   if (transferPts) {
@@ -2511,9 +2498,9 @@ async function confirmMoveStudent(id) {
 
   student.teamId = newTeam ? newTeam.id : '';
   const ptsNote = transferPts ? ' (مع نقاطه)' : ' (بدون نقاط)';
-  logEntry('🔄', `نُقل ${student.name}: ${fromText} ← ${toText}${ptsNote}`);
+  logEntry('🔄', `نُقل ${escapeHTML(student.name)}: ${fromText} ← ${toText}${ptsNote}`);
   save(); render();
-  toast(`✅ تم نقل ${student.name} إلى ${toText}`);
+  toast(`✅ تم نقل ${student.name} إلى ${newTeam ? newTeam.name : 'بدون فريق'}`);
 }
 
 // ===================== TEAMS =====================
@@ -2524,7 +2511,7 @@ function addTeam() {
   const defaultColors = ['#2fae8f','#42a5f5','#c6901f','#ec407a','#ab47bc','#26a69a','#ff7043','#789262'];
   const color = defaultColors[state.teams.length % defaultColors.length];
   state.teams.push({ id: Date.now(), name, points: 0, color });
-  logEntry('🏅', `تمت إضافة الفريق: ${name}`);
+  logEntry('🏅', `تمت إضافة الفريق: ${escapeHTML(name)}`);
   save(); render();
   document.getElementById('new-team-name').value = '';
   toast('✅ تمت إضافة الفريق');
@@ -2536,7 +2523,7 @@ function saveTeamName(id, newName) {
   if (!team) return;
   if (!trimmed || trimmed === team.name) return;
   if (state.teams.find(t => t.name === trimmed && t.id != id)) { toast('⚠️ الاسم مستخدم مسبقاً'); return; }
-  logEntry('✏️', `تغيير اسم الفريق: ${team.name} ← ${trimmed}`);
+  logEntry('✏️', `تغيير اسم الفريق: ${escapeHTML(team.name)} ← ${escapeHTML(trimmed)}`);
   team.name = trimmed;
   save(); render();
   toast('✅ تم تغيير الاسم');
@@ -2554,12 +2541,12 @@ async function removeTeam(id) {
   const team = state.teams.find(t => t.id == id);
   const members = state.students.filter(s => s.teamId == id);
   const msg = members.length
-    ? `حذف فريق "${team.name}"؟\nسيتم إلغاء ربط ${members.length} طالب بالفريق.`
-    : `حذف فريق "${team.name}"؟`;
+    ? `حذف فريق "${escapeHTML(team.name)}"؟\nسيتم إلغاء ربط ${members.length} طالب بالفريق.`
+    : `حذف فريق "${escapeHTML(team.name)}"؟`;
   if (!await customConfirm(msg, '🗑️')) return;
   members.forEach(s => s.teamId = '');
   state.teams = state.teams.filter(t => t.id != id);
-  logEntry('🗑️', `تم حذف الفريق: ${team.name}`);
+  logEntry('🗑️', `تم حذف الفريق: ${escapeHTML(team.name)}`);
   save(); render();
   toast('🗑️ تم حذف الفريق');
 }
@@ -2577,7 +2564,7 @@ function setTeamLeader(teamId, role, studentId) {
   team[role] = studentId || '';
   const student = state.students.find(s => s.id == studentId);
   const roleLabel = role === 'leaderId' ? 'قائد' : 'نائب قائد';
-  logEntry('👑', `تعيين ${roleLabel} فريق ${team.name}: ${student ? student.name : '— بلا تعيين —'}`);
+  logEntry('👑', `تعيين ${roleLabel} فريق ${escapeHTML(team.name)}: ${student ? escapeHTML(student.name) : '— بلا تعيين —'}`);
   save(); render();
   toast('✅ تم التحديث');
 }
@@ -2602,7 +2589,7 @@ async function givePoints(dir) {
       (l.isoDate || new Date(l.date).toISOString().slice(0,10)) === todayISO
     );
     if (alreadyToday) {
-      const proceed = await customConfirm(`${student.name} اتسجّل حضوره اليوم أصلاً.\n\nهل تريد إضافة نقاط حضور إضافية؟`, '📅');
+      const proceed = await customConfirm(`${escapeHTML(student.name)} اتسجّل حضوره اليوم أصلاً.\n\nهل تريد إضافة نقاط حضور إضافية؟`, '📅');
       if (!proceed) return;
     }
   }
@@ -2618,16 +2605,16 @@ async function givePoints(dir) {
 
   const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-hidden-correction')?.checked;
   const streakChecked = dir === 1 && selectedCat === 'حضور وانتظام' && document.getElementById('pts-streak')?.checked;
-  const noteText = note ? ` (${note})` : '';
+  const noteText = note ? ` (${escapeHTML(note)})` : '';
   const icon = dir === 1 ? '⭐' : '➖';
   const sign = dir === 1 ? '+' : '-';
-  logEntry(icon, `${student.name} ${sign}${amt} نقطة | ${selectedCat}${noteText}`, {
+  logEntry(icon, `${escapeHTML(student.name)} ${sign}${amt} نقطة | ${selectedCat}${noteText}`, {
     kind: 'student', studentId: student.id, teamId: student.teamId || null, change
   }, isHiddenCorrection);
 
   if (streakChecked) {
     student.streak = (student.streak || 0) + 1;
-    logEntry('🔥', `${student.name}: زيادة السترايك يدوياً إلى ${student.streak} ${student.streak === 1 ? 'يوم' : 'أيام'}`, null, isHiddenCorrection);
+    logEntry('🔥', `${escapeHTML(student.name)}: زيادة السترايك يدوياً إلى ${student.streak} ${student.streak === 1 ? 'يوم' : 'أيام'}`, null, isHiddenCorrection);
   }
 
   save(); render();
@@ -2649,10 +2636,10 @@ function giveTeamPoints(dir) {
   const change = amt * dir;
   team.points = team.points + change;
 
-  const noteText = note ? ` (${note})` : '';
+  const noteText = note ? ` (${escapeHTML(note)})` : '';
   const icon = dir === 1 ? '🏅' : '➖';
   const sign = dir === 1 ? '+' : '-';
-  logEntry(icon, `فريق ${team.name} ${sign}${amt} نقطة جماعية${noteText}`, {
+  logEntry(icon, `فريق ${escapeHTML(team.name)} ${sign}${amt} نقطة جماعية${noteText}`, {
     kind: 'team', teamId: team.id, change
   });
   save(); render();
@@ -2793,6 +2780,12 @@ async function removeLogEntry(id) {
 }
 
 // ===================== TOAST =====================
+// تنظيف أي نص قبل إدراجه بالصفحة (أسماء طلاب/فرق/مشرفين، ملاحظات) — حماية من حقن أكواد ضارة (XSS)
+function escapeHTML(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str) { return String(str ?? '').replace(/'/g, "\\'"); }
+
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -2932,7 +2925,7 @@ function getStudentBadges(student) {
   if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة', color: '#1565c0' });
   if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق', color: '#ab47bc' });
   if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً', color: '#b8462f' });
-  (student.customBadges || []).forEach(b => badges.push({ icon: b.icon, label: b.label, color: '#7a5a12' }));
+  (student.customBadges || []).forEach(b => badges.push({ icon: escapeHTML(b.icon), label: escapeHTML(b.label), color: '#7a5a12' }));
 
   return badges;
 }
@@ -2966,8 +2959,8 @@ function renderHome() {
     wl.innerHTML = '<div class="empty" style="padding:16px"><p>لا توجد بيانات بعد لهذا الأسبوع</p></div>';
   } else {
     wl.innerHTML = `
-      ${topStudentWeek ? `<div class="student-item"><div class="student-info"><span style="font-size:1.3rem">🌟</span><div><div class="student-name clickable-name" onclick="openStudentModal(${topStudentWeek.id})">${topStudentWeek.name}</div><div class="student-team">طالب الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topStudentWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
-      ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#2fae8f'};width:18px;height:18px"></span><div><div class="student-name">${topTeamWeek.name}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
+      ${topStudentWeek ? `<div class="student-item"><div class="student-info"><span style="font-size:1.3rem">🌟</span><div><div class="student-name clickable-name" onclick="openStudentModal(${topStudentWeek.id})">${escapeHTML(topStudentWeek.name)}</div><div class="student-team">طالب الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topStudentWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
+      ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#2fae8f'};width:18px;height:18px"></span><div><div class="student-name">${escapeHTML(topTeamWeek.name)}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
     `;
   }
 
@@ -2983,7 +2976,7 @@ function renderHome() {
       const dot = team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>` : '';
       return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
         <div class="rank-badge">${medal}</div>
-        <div class="rank-name clickable-name" onclick="openStudentModal(${s.id})">${s.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${dot}${team ? team.name : ''}</span></div>
+        <div class="rank-name clickable-name" onclick="openStudentModal(${s.id})">${escapeHTML(s.name)}<br><span style="font-size:0.72rem;color:var(--gray-text)">${dot}${team ? escapeHTML(team.name) : ''}</span></div>
         <div class="rank-pts"><span class="pts-val" data-kind="student" data-id="${s.id}">${s.points}</span><span class="pts-label"> نقطة</span></div>
       </div>`;
     }).join('');
@@ -3000,7 +2993,7 @@ function renderHome() {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
       return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
         <div class="rank-badge">${medal}</div>
-        <div class="rank-name"><span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${members} عضو</span></div>
+        <div class="rank-name"><span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${escapeHTML(t.name)}<br><span style="font-size:0.72rem;color:var(--gray-text)">${members} عضو</span></div>
         <div class="rank-pts"><span class="pts-val" data-kind="team" data-id="${t.id}">${t.points}</span><span class="pts-label"> نقطة</span></div>
       </div>`;
     }).join('');
@@ -3028,11 +3021,11 @@ function renderStudentsList() {
     const team = state.teams.find(t => t.id == s.teamId);
     const initials = s.name.split(' ').slice(0,2).map(w => w[0]).join('');
     const teamOptions = state.teams.map(t =>
-      `<option value="${t.id}" ${t.id == s.teamId ? 'selected' : ''}>${t.name}</option>`
+      `<option value="${t.id}" ${t.id == s.teamId ? 'selected' : ''}>${escapeHTML(t.name)}</option>`
     ).join('');
     const avatarInner = s.photo
-      ? `<img src="${s.photo}" alt="${s.name}">`
-      : initials;
+      ? `<img src="${escapeHTML(s.photo)}" alt="${escapeHTML(s.name)}">`
+      : escapeHTML(initials);
     return `<div>
       <div class="student-item">
         <div class="student-info">
@@ -3042,8 +3035,8 @@ function renderStudentsList() {
             <div class="avatar-edit-badge">📷</div>
           </div>
           <div>
-            <div class="student-name clickable-name" onclick="openStudentModal(${s.id})">${s.name}</div>
-            <div class="student-team">${team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>${team.name}` : 'بدون فريق'}</div>
+            <div class="student-name clickable-name" onclick="openStudentModal(${s.id})">${escapeHTML(s.name)}</div>
+            <div class="student-team">${team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>${escapeHTML(team.name)}` : 'بدون فريق'}</div>
             ${renderBadges(s)}
           </div>
         </div>
@@ -3132,7 +3125,7 @@ function renderTeamsChart() {
 
   const legend = state.teams.map(t =>
     `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;margin-left:10px">
-      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}
+      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${escapeHTML(t.name)}
     </span>`
   ).join('');
 
@@ -3151,23 +3144,23 @@ function renderTeamsList() {
     const teamColor = t.color || '#2fae8f';
     const leader = state.students.find(s => s.id == t.leaderId);
     const vice = state.students.find(s => s.id == t.viceId);
-    const memberOptions = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    const memberOptions = members.map(m => `<option value="${m.id}">${escapeHTML(m.name)}</option>`).join('');
     return `<div class="team-card" style="background:${teamColor}1a;border-right-color:${teamColor}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div class="team-name" style="display:flex;align-items:center;gap:8px">
             <span class="team-color-dot" style="background:${teamColor};width:14px;height:14px;flex-shrink:0"></span>
-            <input id="team-name-input-${t.id}" value="${t.name.replace(/"/g,'&quot;')}"
+            <input id="team-name-input-${t.id}" value="${escapeHTML(t.name)}"
               style="font-weight:800;font-size:1rem;border:none;background:transparent;width:100%;font-family:inherit;color:var(--green-deep);padding:0;outline:none;border-bottom:1px dashed transparent"
               onfocus="this.style.borderBottomColor='var(--green-mid)'"
               onblur="this.style.borderBottomColor='transparent';saveTeamName(${t.id},this.value)"
               onkeydown="if(event.key==='Enter'){this.blur()}">
           </div>
           <div class="team-pts" style="color:${ptsColor}">${t.points} <span style="font-size:1rem;font-weight:500">نقطة</span></div>
-          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${m.name}</span>`).join('، ') : ''}</div>
+          <div class="team-count">${members.length} عضو${members.length ? ': ' + members.map(m => `<span class="clickable-name" onclick="openStudentModal(${m.id})">${escapeHTML(m.name)}</span>`).join('، ') : ''}</div>
           <div class="team-leaders">
-            <div><span class="lbl">👑 القائد: </span>${leader ? `<b class="clickable-name" onclick="openStudentModal(${leader.id})">${leader.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
-            <div><span class="lbl">🥈 نائب القائد: </span>${vice ? `<b class="clickable-name" onclick="openStudentModal(${vice.id})">${vice.name}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
+            <div><span class="lbl">👑 القائد: </span>${leader ? `<b class="clickable-name" onclick="openStudentModal(${leader.id})">${escapeHTML(leader.name)}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
+            <div><span class="lbl">🥈 نائب القائد: </span>${vice ? `<b class="clickable-name" onclick="openStudentModal(${vice.id})">${escapeHTML(vice.name)}</b>` : '<span class="lbl">— غير معيّن —</span>'}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-direction:column;align-items:stretch;flex-shrink:0">
@@ -3414,7 +3407,7 @@ function filterScorerSuggestions(rowId, query) {
     return;
   }
   box.innerHTML = matches.map(s =>
-    `<div style="padding:8px 12px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid #efe8d8" onclick="pickScorerSuggestion('${rowId}', ${s.id})">${s.name}</div>`
+    `<div style="padding:8px 12px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid #efe8d8" onclick="pickScorerSuggestion('${rowId}', ${s.id})">${escapeHTML(s.name)}</div>`
   ).join('');
   box.style.display = 'block';
 }
@@ -3439,7 +3432,6 @@ document.addEventListener('click', (e) => {
 
 function saveMatch() {
   const editId = document.getElementById('match-edit-id').value;
-  const isTournamentEdit = document.getElementById('match-edit-tournament').value === '1';
   const teamAId = document.getElementById('match-team-a').value;
   const teamBId = document.getElementById('match-team-b').value;
   const date = document.getElementById('match-date').value || new Date().toISOString().slice(0,10);
@@ -3447,11 +3439,11 @@ function saveMatch() {
 
   if (!teamAId || !teamBId) { toast('⚠️ اختر الفريقين'); return; }
   if (teamAId === teamBId) { toast('⚠️ لا يمكن أن يلعب الفريق ضد نفسه'); return; }
+  if (!editId) { toast('⚠️ تعذّر تحديد المباراة المطلوب تعديلها'); return; }
 
   const teamA = state.teams.find(t => t.id == teamAId);
   const teamB = state.teams.find(t => t.id == teamBId);
 
-  // نبني بيانات المباراة (سواء جديدة أو معدّلة) بنفس الطريقة
   const matchData = {
     teamAId, teamBId, date, status,
     scoreA: 0, scoreB: 0, scorers: []
@@ -3471,82 +3463,32 @@ function saveMatch() {
     });
   }
 
-  if (editId && isTournamentEdit) {
-    // ===== وضع التعديل: مباراة من جدول دوري الرجال (البطولة المنظَّمة) =====
-    const t = state.league.tournament;
-    const match = t ? t.matches.find(m => String(m.id) === String(editId)) : null;
-    if (!match) { toast('⚠️ تعذّر إيجاد مباراة الدوري'); return; }
-    Object.assign(match, matchData);
+  // ===== تعديل نتيجة مباراة من جدول دوري الرجال (البطولة المنظَّمة) — الاستخدام الوحيد المتبقي لهذا الفورم =====
+  const t = state.league.tournament;
+  const match = t ? t.matches.find(m => String(m.id) === String(editId)) : null;
+  if (!match) { toast('⚠️ تعذّر إيجاد مباراة الدوري'); return; }
+  Object.assign(match, matchData);
 
-    if (status === 'played') {
-      logEntry('✏️', `تعديل نتيجة دوري الرجال: ${teamA.name} ${matchData.scoreA} - ${matchData.scoreB} ${teamB.name}`);
-    } else {
-      logEntry('✏️', `تعديل مباراة دوري الرجال: ${teamA.name} ضد ${teamB.name} – ${date}`);
-    }
-    toast('✅ تم تعديل مباراة الدوري');
-  } else if (editId) {
-    // ===== وضع التعديل: نحدّث مباراة موجودة بدل إنشاء جديدة =====
-    const match = state.league.matches.find(m => String(m.id) === String(editId));
-    if (!match) { toast('⚠️ تعذّر إيجاد المباراة'); return; }
-    Object.assign(match, matchData);
-
-    if (status === 'played') {
-      logEntry('✏️', `تعديل نتيجة مباراة: ${teamA.name} ${matchData.scoreA} - ${matchData.scoreB} ${teamB.name}`);
-    } else {
-      logEntry('✏️', `تعديل مباراة قادمة: ${teamA.name} ضد ${teamB.name} – ${date}`);
-    }
-    toast('✅ تم تعديل المباراة');
+  if (status === 'played') {
+    logEntry('✏️', `تعديل نتيجة دوري الرجال: ${escapeHTML(teamA.name)} ${matchData.scoreA} - ${matchData.scoreB} ${escapeHTML(teamB.name)}`);
   } else {
-    // ===== وضع الإضافة: مباراة جديدة =====
-    const match = { id: Date.now(), ...matchData };
-    if (status === 'played') {
-      logEntry('⚽', `${teamA.name} ${match.scoreA} - ${match.scoreB} ${teamB.name}`);
-    } else {
-      logEntry('📅', `مباراة قادمة: ${teamA.name} ضد ${teamB.name} – ${date}`);
-    }
-    state.league.matches.unshift(match);
-    toast('✅ تم حفظ المباراة');
+    logEntry('✏️', `تعديل مباراة دوري الرجال: ${escapeHTML(teamA.name)} ضد ${escapeHTML(teamB.name)} – ${date}`);
   }
+  toast('✅ تم تعديل مباراة الدوري');
 
   save(); render();
   resetMatchForm();
+  document.getElementById('match-form-card').style.display = 'none';
 }
 
 // تعبية الفورم ببيانات مباراة محفوظة (قادمة أو سابقة) للتعديل عليها
-function editMatch(id) {
-  const match = state.league.matches.find(m => String(m.id) === String(id));
-  if (!match) return;
-
-  document.getElementById('match-edit-id').value = match.id;
-  document.getElementById('match-edit-tournament').value = '';
-  document.getElementById('match-team-a').value = match.teamAId;
-  document.getElementById('match-team-b').value = match.teamBId;
-  document.getElementById('match-date').value = match.date;
-  document.getElementById('match-status').value = match.status;
-  toggleMatchScoreFields();
-
-  document.getElementById('match-score-a').value = match.scoreA || 0;
-  document.getElementById('match-score-b').value = match.scoreB || 0;
-
-  document.getElementById('match-scorers-area').innerHTML = '';
-  scorerRowCount = 0;
-  (match.scorers || []).forEach(sc => addScorerRow(sc.studentId, sc.goals));
-
-  document.getElementById('match-form-title').querySelector('span').textContent = '✏️ تعديل مباراة محفوظة';
-  document.getElementById('match-edit-banner').textContent = '✏️ أنت الآن تعدّل على مباراة محفوظة';
-  document.getElementById('match-edit-banner').style.display = 'block';
-  document.getElementById('match-cancel-edit-btn').style.display = '';
-  document.getElementById('match-save-btn').textContent = '💾 حفظ التعديل';
-
-  document.getElementById('match-form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 function cancelEditMatch() {
   resetMatchForm();
+  document.getElementById('match-form-card').style.display = 'none';
   toast('تم إلغاء التعديل');
 }
 
-// إعادة الفورم لوضعه الافتراضي (إضافة مباراة جديدة) بعد الحفظ أو الإلغاء
+// إعادة فورم تعديل مباراة البطولة لوضعه الافتراضي بعد الحفظ أو الإلغاء
 function resetMatchForm() {
   document.getElementById('match-edit-id').value = '';
   document.getElementById('match-edit-tournament').value = '';
@@ -3559,20 +3501,6 @@ function resetMatchForm() {
   document.getElementById('match-score-b').value = 0;
   document.getElementById('match-scorers-area').innerHTML = '';
   scorerRowCount = 0;
-
-  document.getElementById('match-form-title').querySelector('span').textContent = '📝 تسجيل / جدولة مباراة';
-  document.getElementById('match-edit-banner').style.display = 'none';
-  document.getElementById('match-cancel-edit-btn').style.display = 'none';
-  document.getElementById('match-save-btn').textContent = '💾 حفظ المباراة';
-}
-
-async function deleteMatch(id) {
-  if (!await customConfirm('حذف هذه المباراة؟', '🗑️')) return;
-  state.league.matches = state.league.matches.filter(m => m.id !== id);
-  // إذا كانت المباراة المحذوفة هي قيد التعديل حالياً، نلغي وضع التعديل
-  if (String(document.getElementById('match-edit-id').value) === String(id)) resetMatchForm();
-  save(); render();
-  toast('🗑️ تم حذف المباراة');
 }
 
 // حساب نقاط الدوري لكل فريق (3 فوز / 1 تعادل / 0 خسارة) ضمن مباريات أسبوع معيّن أو كل الأوقات
@@ -3608,7 +3536,7 @@ function renderTeamOfWeek() {
   const members = state.students.filter(s => String(s.teamId) === String(top.id)).length;
   el.innerHTML = `<div class="team-card" style="background:${(top.color||'#2fae8f')}1a;border-right-color:${top.color||'#2fae8f'}">
     <div class="team-name" style="display:flex;align-items:center;gap:8px">
-      <span class="team-color-dot" style="background:${top.color||'#2fae8f'};width:16px;height:16px"></span>🏆 ${top.name}
+      <span class="team-color-dot" style="background:${top.color||'#2fae8f'};width:16px;height:16px"></span>🏆 ${escapeHTML(top.name)}
     </div>
     <div class="team-count">${weekPointsOf(top)} نقطة هذا الأسبوع | ${members} عضو</div>
   </div>`;
@@ -3623,7 +3551,7 @@ function setPlayerOfWeek() {
   if (!sid) { toast('⚠️ اختر لاعباً أولاً'); return; }
   const student = state.students.find(s => s.id == sid);
   state.league.playerOfWeek[currentWeekKey()] = sid;
-  logEntry('⭐', `لاعب الأسبوع: ${student.name}`);
+  logEntry('⭐', `لاعب الأسبوع: ${escapeHTML(student.name)}`);
   save(); render();
   toast(`✅ تم تثبيت ${student.name} كلاعب الأسبوع`);
 }
@@ -3639,7 +3567,7 @@ function renderPlayerOfWeek() {
   el.innerHTML = `<div class="student-item">
     <div class="student-info">
       <span style="font-size:1.4rem">⭐</span>
-      <div><div class="student-name">${student.name}</div><div class="student-team">${team ? team.name : ''}</div></div>
+      <div><div class="student-name">${escapeHTML(student.name)}</div><div class="student-team">${team ? escapeHTML(team.name) : ''}</div></div>
     </div>
   </div>`;
 }
@@ -3652,7 +3580,7 @@ function setTopScorerOverride() {
   const student = state.students.find(s => s.id == sid);
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
   state.league.topScorerOverride[currentWeekKey()] = { studentId: sid, goals };
-  logEntry('⚽', `تعديل يدوي: هدّاف الأسبوع ${student.name} (${goals} هدف)`);
+  logEntry('⚽', `تعديل يدوي: هدّاف الأسبوع ${escapeHTML(student.name)} (${goals} هدف)`);
   save(); render();
   toast(`✅ تم تثبيت ${student.name} كهدّاف الأسبوع بـ ${goals} هدف`);
 }
@@ -3694,60 +3622,10 @@ function renderTopScorerWeek() {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
     return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
       <div class="rank-badge">${medal}</div>
-      <div class="rank-name clickable-name" onclick="openStudentModal(${student.id})">${student.name}<br><span style="font-size:0.72rem;color:var(--gray-text)">${team ? team.name : ''}${override && i === 0 ? ' (معدَّل يدوياً)' : ''}</span></div>
+      <div class="rank-name clickable-name" onclick="openStudentModal(${student.id})">${escapeHTML(student.name)}<br><span style="font-size:0.72rem;color:var(--gray-text)">${team ? escapeHTML(team.name) : ''}${override && i === 0 ? ' (معدَّل يدوياً)' : ''}</span></div>
       <div class="rank-pts">${goals}<span class="pts-label"> هدف</span></div>
     </div>`;
   }).join('');
-}
-
-function renderMatchesLists() {
-  const upcomingEl = document.getElementById('upcoming-matches-list');
-  const playedEl = document.getElementById('played-matches-list');
-  if (!upcomingEl || !playedEl) return;
-
-  const upcoming = state.league.matches.filter(m => m.status === 'scheduled').sort((a,b) => a.date.localeCompare(b.date));
-  const played = state.league.matches.filter(m => m.status === 'played').sort((a,b) => b.date.localeCompare(a.date));
-
-  const teamName = id => { const t = state.teams.find(t => t.id == id); return t ? t.name : '—'; };
-  const teamColorOf = id => { const t = state.teams.find(t => t.id == id); return t ? (t.color || '#2fae8f') : '#999'; };
-
-  upcomingEl.innerHTML = upcoming.length ? upcoming.map(m => `
-    <div class="log-item" style="justify-content:space-between">
-      <div>
-        <div style="font-weight:700">
-          <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
-          <span style="color:var(--gray-text);font-weight:500"> ضد </span>
-          <span class="team-color-dot" style="background:${teamColorOf(m.teamBId)}"></span>${teamName(m.teamBId)}
-        </div>
-        <div class="log-time">${m.date}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="editMatch(${m.id})">✏️</button>
-        <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
-      </div>
-    </div>
-  `).join('') : '<div class="empty" style="padding:16px"><p>لا توجد مباريات قادمة</p></div>';
-
-  playedEl.innerHTML = played.length ? played.map(m => {
-    const scorersText = m.scorers.length
-      ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `<span class="clickable-name" onclick="openStudentModal(${s.id})">${s.name}</span> (${sc.goals})` : ''; }).filter(Boolean).join('، ')
-      : '';
-    return `
-    <div class="log-item" style="justify-content:space-between">
-      <div>
-        <div style="font-weight:700">
-          <span class="team-color-dot" style="background:${teamColorOf(m.teamAId)}"></span>${teamName(m.teamAId)}
-          <span style="color:var(--green-mid)"> ${m.scoreA} - ${m.scoreB} </span>
-          <span class="team-color-dot" style="background:${teamColorOf(m.teamBId)}"></span>${teamName(m.teamBId)}
-        </div>
-        <div class="log-time">${m.date}${scorersText ? ' | ⚽ ' + scorersText : ''}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#9c7519" onclick="editMatch(${m.id})">✏️</button>
-        <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteMatch(${m.id})">🗑</button>
-      </div>
-    </div>`;
-  }).join('') : '<div class="empty" style="padding:16px"><p>لا توجد نتائج مباريات سابقة</p></div>';
 }
 
 // ===================== بطولة دوري الرجال (موسم منظَّم على 4 أسابيع) =====================
@@ -3884,7 +3762,7 @@ async function fixFutureWeeksSchedule() {
 function renderTournamentTeamPicker() {
   return state.teams.map(t => `
     <button class="tournament-team-btn" data-team-id="${t.id}" onclick="toggleTournamentTeam(${t.id})">
-      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${t.name}
+      <span class="team-color-dot" style="background:${t.color || '#2fae8f'}"></span>${escapeHTML(t.name)}
     </button>
   `).join('');
 }
@@ -3967,12 +3845,7 @@ function editTournamentMatch(id) {
   scorerRowCount = 0;
   (match.scorers || []).forEach(sc => addScorerRow(sc.studentId, sc.goals));
 
-  document.getElementById('match-form-title').querySelector('span').textContent = '✏️ تعديل مباراة دوري الرجال';
-  document.getElementById('match-edit-banner').style.display = 'block';
-  document.getElementById('match-edit-banner').textContent = '🏆 أنت الآن تعدّل مباراة من جدول دوري الرجال';
-  document.getElementById('match-cancel-edit-btn').style.display = '';
-  document.getElementById('match-save-btn').textContent = '💾 حفظ نتيجة الدوري';
-
+  document.getElementById('match-form-card').style.display = 'block';
   document.getElementById('match-form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -4026,7 +3899,7 @@ function renderTournament() {
     </div>
     ${byWeek[w].map(m => {
       const scorersText = (m.scorers || []).length
-        ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `${s.name} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
+        ? m.scorers.map(sc => { const s = state.students.find(x => x.id == sc.studentId); return s ? `${escapeHTML(s.name)} (${sc.goals})` : ''; }).filter(Boolean).join('، ')
         : '';
       const resultText = m.status === 'played'
         ? `<span style="color:var(--green-mid)"> ${m.scoreA} - ${m.scoreB} </span>`
@@ -4069,7 +3942,6 @@ function renderLeaguePage() {
   renderTeamOfWeek();
   renderPlayerOfWeek();
   renderTopScorerWeek();
-  renderMatchesLists();
   renderTournament();
 }
 

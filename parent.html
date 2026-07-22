@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-09-01">
+<meta name="app-build" content="2026-07-10-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -722,24 +722,6 @@ function fajrCountOf(studentId) {
 }
 
 // يوم النادي الفعلي = يوم سُجِّل فيه حضور لأي طالب على الأقل (دليل على انعقاد جلسة)
-function getClubDays() {
-  const days = new Set();
-  state.log.forEach(l => {
-    if (l.meta && l.meta.kind === 'student' && l.meta.change > 0 && l.text && l.text.includes('حضور وانتظام')) {
-      days.add(l.isoDate || new Date(l.date).toISOString().slice(0,10));
-    }
-  });
-  return Array.from(days).sort().reverse(); // الأحدث أولاً
-}
-
-function studentAttendedOn(studentId, isoDate) {
-  return state.log.some(l =>
-    l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
-    l.meta.change > 0 && l.text && l.text.includes('حضور وانتظام') &&
-    (l.isoDate || new Date(l.date).toISOString().slice(0,10)) === isoDate
-  );
-}
-
 // سترايك الحضور (أيام نادي متتالية بدون انقطاع، بنفس منطق admin.html)
 function studentStreakOf(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
@@ -771,7 +753,7 @@ function getStudentBadges(student) {
   if (initiativeLogs.length >= 3) badges.push({ icon: '💡', label: 'صاحب مبادرة' });
   if (moralsLogs.length >= 3) badges.push({ icon: '🌸', label: 'قدوة بالأخلاق' });
   if (positiveLogs.length >= 10) badges.push({ icon: '🔥', label: 'نشيط جداً' });
-  (student.customBadges || []).forEach(b => badges.push({ icon: b.icon, label: b.label }));
+  (student.customBadges || []).forEach(b => badges.push({ icon: escapeHTML(b.icon), label: escapeHTML(b.label) }));
   return badges;
 }
 
