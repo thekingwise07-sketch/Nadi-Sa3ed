@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-01">
+<meta name="app-build" content="2026-07-23-03">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -830,6 +830,10 @@
       <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickTeamPts(20)">+20</button>
     </div>
     <input type="number" id="pts-team-amount" placeholder="عدد النقاط" min="1" value="5">
+    <label id="team-hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fbeedc;border:2px dashed #eda355;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#6b4a12;cursor:pointer">
+      <input type="checkbox" id="pts-team-hidden-correction" style="width:20px;height:20px;accent-color:#eda355;margin:0">
+      🙈 تصحيح خاص (ما تظهر هالعملية بسجل باقي المشرفين)
+    </label>
     <input type="text" id="pts-team-note" placeholder="سبب (اختياري)">
     <div class="row">
       <button class="btn btn-gold" onclick="giveTeamPoints(1)">🏅 منح الفريق</button>
@@ -1068,9 +1072,11 @@ function completeLogin(name) {
 
 // خانة "تصحيح خاص" تظهر فقط لرائد (المشرف الرئيسي) — باقي المشرفين ما بيشوفوها إطلاقاً
 function updateHiddenCorrectionVisibility() {
+  const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
   const el = document.getElementById('hidden-correction-wrap');
-  if (!el) return;
-  el.style.display = (sessionStorage.getItem('nadyAdmin') === 'رائد') ? 'flex' : 'none';
+  if (el) el.style.display = isRaed ? 'flex' : 'none';
+  const teamEl = document.getElementById('team-hidden-correction-wrap');
+  if (teamEl) teamEl.style.display = isRaed ? 'flex' : 'none';
 }
 
 function showAdminLogin() {
@@ -2105,9 +2111,10 @@ function giveBulkPoints() {
   });
 
   const noteText = note ? ` (${escapeHTML(note)})` : '';
+  const teamLabel = teamId ? ` | فريق ${escapeHTML((state.teams.find(t => String(t.id) === String(teamId)) || {}).name || '')}` : '';
   // سجل ملخّص واحد يظهر بسجل النشاط العام (كما كان سابقاً)
-  logEntry('⭐', `منح جماعي +${amt} نقطة لـ ${students.length} طالب | ${selectedBulkCat}${noteText}`, {
-    kind: 'bulk', studentIds: students.map(s => s.id), change: amt
+  logEntry('⭐', `منح جماعي +${amt} نقطة لـ ${students.length} طالب | ${selectedBulkCat}${teamLabel}${noteText}`, {
+    kind: 'bulk', studentIds: students.map(s => s.id), teamId: teamId || null, change: amt
   });
   // سجلات فردية إضافية (kind: 'student') لكل طالب — ضرورية حتى تعمل بشكل صحيح:
   // عداد مرات الحضور (attendanceCountOf)، الشارات (getStudentBadges)، وكشف نقاط الأسبوع لكل طالب
@@ -2701,13 +2708,15 @@ function giveTeamPoints(dir) {
   const noteText = note ? ` (${escapeHTML(note)})` : '';
   const icon = dir === 1 ? '🏅' : '➖';
   const sign = dir === 1 ? '+' : '-';
+  const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-team-hidden-correction')?.checked;
   logEntry(icon, `فريق ${escapeHTML(team.name)} ${sign}${amt} نقطة جماعية${noteText}`, {
     kind: 'team', teamId: team.id, change
-  });
+  }, isHiddenCorrection);
   save(); render();
   document.getElementById('pts-team-amount').value = 5;
   document.getElementById('pts-team-note').value = '';
-  toast(`${icon} ${sign}${amt} نقطة لفريق ${team.name}`);
+  if (document.getElementById('pts-team-hidden-correction')) document.getElementById('pts-team-hidden-correction').checked = false;
+  toast(`${icon} ${sign}${amt} نقطة لفريق ${team.name}${isHiddenCorrection ? ' 🙈' : ''}`);
 }
 
 // ===================== LOG =====================
@@ -3271,7 +3280,8 @@ function renderLog() {
   if (teamFilter) {
     filtered = filtered.filter(l => l.meta && (
       (l.meta.kind === 'team' && String(l.meta.teamId) === teamFilter) ||
-      (l.meta.kind === 'student' && String(l.meta.teamId) === teamFilter)
+      (l.meta.kind === 'student' && String(l.meta.teamId) === teamFilter) ||
+      (l.meta.kind === 'bulk' && String(l.meta.teamId) === teamFilter)
     ));
   }
   if (studentFilter) {
