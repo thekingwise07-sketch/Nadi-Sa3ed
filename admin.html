@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-03">
+<meta name="app-build" content="2026-07-23-04">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -2275,6 +2275,7 @@ function applyPublicSnapshotToState(snapshot) {
     weeks: src.weeks || [],
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
     rulesConfig: src.rulesConfig || null,
+    maintenanceMode: !!src.maintenanceMode,
     league: {
       matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
