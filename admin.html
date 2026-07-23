@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-10-01">
+<meta name="app-build" content="2026-07-11-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -749,11 +749,11 @@
 
     <div class="section-label">عدد النقاط</div>
     <div class="row" style="margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(1)">+1</button>
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(2)">+2</button>
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(3)">+3</button>
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(5)">+5</button>
-      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(15)">+15</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickPts(20)">+20</button>
+      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickPts(25)">+25</button>
     </div>
     <input type="number" id="pts-amount" placeholder="أو اكتب العدد يدوياً" min="1" value="1">
     <div id="attendance-streak-hint" style="display:none;background:#fbeedc;border:1px solid #eda355;border-radius:10px;padding:8px 12px;font-size:0.78rem;font-weight:700;color:#6b4a12;margin-bottom:10px;line-height:1.5"></div>
@@ -800,11 +800,11 @@
 
     <div class="section-label">عدد النقاط لكل طالب</div>
     <div class="row" style="margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(1)">+1</button>
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(2)">+2</button>
-      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(3)">+3</button>
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(5)">+5</button>
-      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickBulkPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(15)">+15</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickBulkPts(20)">+20</button>
+      <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickBulkPts(25)">+25</button>
     </div>
     <input type="number" id="bulk-amount" placeholder="عدد النقاط لكل طالب" min="1" value="1">
     <label id="bulk-streak-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
@@ -826,6 +826,7 @@
     <div class="row" style="margin-bottom:10px">
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(5)">+5</button>
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(10)">+10</button>
+      <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="setQuickTeamPts(15)">+15</button>
       <button class="btn btn-sm" style="background:#fbecc9;color:var(--gold);border:2px solid var(--gold)" onclick="setQuickTeamPts(20)">+20</button>
     </div>
     <input type="number" id="pts-team-amount" placeholder="عدد النقاط" min="1" value="5">
@@ -1195,10 +1196,32 @@ function renderAccountModalContent(backdrop, name) {
           : `<button class="btn" onclick="setupBiometric()">تفعيل الفتح السريع على هذا الجهاز</button>`
       }
 
+      ${name === 'رائد' ? `
+      <div class="section-label" style="margin-top:6px">📡 بث صفحة الطلاب</div>
+      <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        إيقاف مؤقت لعرض البيانات لصفحة الطلاب — مفيد وقت ما تسوي تعديلات كبيرة وما بدك يشوفوها لحد ما تخلص.
+      </p>
+      ${state.maintenanceMode
+        ? `<div style="background:#fbecc9;color:#7a5a12;border-radius:10px;padding:10px;font-size:0.8rem;font-weight:700;margin-bottom:10px">⏸️ البث متوقف حالياً — الطلاب شايفين شاشة "الموقع متوقف مؤقتاً"</div>
+           <button class="btn btn-gold" onclick="toggleMaintenanceMode()">▶️ رجّع البث</button>`
+        : `<button class="btn btn-sm" style="background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="toggleMaintenanceMode()">⏸️ إيقاف البث مؤقتاً</button>`
+      }
+      ` : ''}
+
       <div class="cmodal-btns" style="margin-top:18px">
         <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
       </div>
     </div>`;
+}
+
+// إيقاف/تشغيل بث البيانات لصفحة الطلاب — رائد فقط
+function toggleMaintenanceMode() {
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا متاح لرائد فقط'); return; }
+  state.maintenanceMode = !state.maintenanceMode;
+  logEntry(state.maintenanceMode ? '⏸️' : '▶️', state.maintenanceMode ? 'إيقاف بث صفحة الطلاب مؤقتاً' : 'إعادة تشغيل بث صفحة الطلاب');
+  save(); render();
+  toast(state.maintenanceMode ? '⏸️ تم إيقاف البث عن صفحة الطلاب' : '▶️ رجع البث لصفحة الطلاب');
+  openAccountModal();
 }
 
 function closeAccountModal() {
@@ -1262,6 +1285,7 @@ function ensureFields() {
   if (!state.rulesConfig) state.rulesConfig = defaultRulesConfig();
   if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
   if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
+  if (state.maintenanceMode === undefined) state.maintenanceMode = false; // إيقاف/تشغيل بث صفحة الطلاب
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
@@ -1729,6 +1753,44 @@ function fajrCountOf(studentId) {
   return days.size;
 }
 
+// عدد مرات تسميع القرآن (أيام فريدة فيها تسجيل بفئة "حفظ قرآن / أذكار")
+function quranCountOf(studentId) {
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (student && student.quranOverride !== undefined && student.quranOverride !== null) {
+    return student.quranOverride; // تعديل يدوي من رائد يتجاوز الحساب التلقائي
+  }
+  const days = new Set();
+  state.log.forEach(l => {
+    if (l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+        l.meta.change >= 0 && l.text && l.text.includes('حفظ قرآن')) {
+      days.add(l.isoDate || new Date(l.date).toISOString().slice(0,10));
+    }
+  });
+  return days.size;
+}
+
+// تعديل يدوي لعدد مرات تسميع القرآن — رائد فقط
+async function editQuranManually(studentId) {
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
+  const student = state.students.find(s => String(s.id) === String(studentId));
+  if (!student) return;
+  const current = quranCountOf(studentId);
+  const input = prompt(`عدّل عدد مرات تسميع القرآن لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
+  if (input === null) return;
+  if (input.trim() === '') {
+    delete student.quranOverride;
+    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات تسميع القرآن للحساب التلقائي`);
+  } else {
+    const val = parseInt(input, 10);
+    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+    student.quranOverride = val;
+    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات تسميع القرآن إلى ${val}`);
+  }
+  save(); render();
+  toast('✅ تم تحديث عدد مرات التسميع');
+  openStudentModal(studentId);
+}
+
 // تعديل يدوي لعدد مرات صلاة الفجر — رائد فقط
 async function editFajrManually(studentId) {
   if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
@@ -1810,6 +1872,7 @@ function openStudentModal(studentId) {
   const goals = goalsOfStudent(s.id);
   const attendance = attendanceCountOf(s.id);
   const fajr = fajrCountOf(s.id);
+  const quran = quranCountOf(s.id);
   const streak = studentStreakOf(s.id);
   const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
   const customBadges = s.customBadges || [];
@@ -1861,9 +1924,10 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
           <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
-        <div class="pmodal-stat soon" style="grid-column:1 / -1">
-          <div class="pmodal-stat-num">📖 0</div>
-          <div class="pmodal-stat-lbl">تسميع القرآن<br><span class="pmodal-soon-tag">قريباً</span></div>
+        <div class="pmodal-stat" style="grid-column:1 / -1;position:relative">
+          ${isRaed ? `<button onclick="editQuranManually(${s.id})" title="تعديل عدد مرات التسميع يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
+          <div class="pmodal-stat-num">📖 ${quran}</div>
+          <div class="pmodal-stat-lbl">مرات تسميع القرآن</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1;background:none;box-shadow:none;padding:6px 0">
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:${isRaed ? '8px' : '0'}">
