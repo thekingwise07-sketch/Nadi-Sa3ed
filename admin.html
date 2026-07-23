@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-11-01">
+<meta name="app-build" content="2026-07-23-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -1196,7 +1196,6 @@ function renderAccountModalContent(backdrop, name) {
           : `<button class="btn" onclick="setupBiometric()">تفعيل الفتح السريع على هذا الجهاز</button>`
       }
 
-      ${name === 'رائد' ? `
       <div class="section-label" style="margin-top:6px">📡 بث صفحة الطلاب</div>
       <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
         إيقاف مؤقت لعرض البيانات لصفحة الطلاب — مفيد وقت ما تسوي تعديلات كبيرة وما بدك يشوفوها لحد ما تخلص.
@@ -1206,7 +1205,6 @@ function renderAccountModalContent(backdrop, name) {
            <button class="btn btn-gold" onclick="toggleMaintenanceMode()">▶️ رجّع البث</button>`
         : `<button class="btn btn-sm" style="background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="toggleMaintenanceMode()">⏸️ إيقاف البث مؤقتاً</button>`
       }
-      ` : ''}
 
       <div class="cmodal-btns" style="margin-top:18px">
         <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
@@ -1214,11 +1212,11 @@ function renderAccountModalContent(backdrop, name) {
     </div>`;
 }
 
-// إيقاف/تشغيل بث البيانات لصفحة الطلاب — رائد فقط
+// إيقاف/تشغيل بث البيانات لصفحة الطلاب — متاح لكل المشرفين
 function toggleMaintenanceMode() {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا متاح لرائد فقط'); return; }
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
   state.maintenanceMode = !state.maintenanceMode;
-  logEntry(state.maintenanceMode ? '⏸️' : '▶️', state.maintenanceMode ? 'إيقاف بث صفحة الطلاب مؤقتاً' : 'إعادة تشغيل بث صفحة الطلاب');
+  logEntry(state.maintenanceMode ? '⏸️' : '▶️', (state.maintenanceMode ? 'إيقاف بث صفحة الطلاب مؤقتاً' : 'إعادة تشغيل بث صفحة الطلاب') + (currentAdmin ? ' — ' + currentAdmin : ''));
   save(); render();
   toast(state.maintenanceMode ? '⏸️ تم إيقاف البث عن صفحة الطلاب' : '▶️ رجع البث لصفحة الطلاب');
   openAccountModal();
