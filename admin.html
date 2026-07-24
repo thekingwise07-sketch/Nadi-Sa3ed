@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-04">
+<meta name="app-build" content="2026-07-23-07">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -745,6 +745,18 @@
       <button class="cat-btn" onclick="selectCat(this,'🕌 صلاة الفجر')">
         <span class="cat-icon">🕌</span>صلاة الفجر
       </button>
+    </div>
+
+    <label id="quran-no-points-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px dashed var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:var(--green-deep);cursor:pointer">
+      <input type="checkbox" id="pts-no-points" onchange="updateTasmeeSurahVisibility()" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
+      📖 تسجيل تسميع بدون نقاط
+    </label>
+    <div id="tasmee-surah-wrap" style="display:none;margin-bottom:10px">
+      <div class="section-label" style="margin-top:0">السورة</div>
+      <select id="pts-tasmee-surah">
+        <option value="سورة الحجرات">سورة الحجرات</option>
+        <option value="سورة لقمان">سورة لقمان</option>
+      </select>
     </div>
 
     <div class="section-label">عدد النقاط</div>
@@ -1773,6 +1785,22 @@ function quranCountOf(studentId) {
   return days.size;
 }
 
+// تحديد السور اللي "الحافظ" لها الطالب بناءً على تسجيلات التسميع بدون نقاط (الحجرات ولقمان)
+function memorizedSurahsLabelOf(studentId) {
+  const hasHujurat = state.log.some(l =>
+    l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+    l.text && l.text.includes('سمّع سورة الحجرات')
+  );
+  const hasLuqman = state.log.some(l =>
+    l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+    l.text && l.text.includes('سمّع سورة لقمان')
+  );
+  if (hasHujurat && hasLuqman) return 'الحافظ لسورة الحجرات وسورة لقمان';
+  if (hasHujurat) return 'الحافظ لسورة الحجرات';
+  if (hasLuqman) return 'الحافظ لسورة لقمان';
+  return 'لم يشارك بالتسميع';
+}
+
 // تعديل يدوي لعدد مرات تسميع القرآن — رائد فقط
 async function editQuranManually(studentId) {
   if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
@@ -1876,7 +1904,7 @@ function openStudentModal(studentId) {
   const goals = goalsOfStudent(s.id);
   const attendance = attendanceCountOf(s.id);
   const fajr = fajrCountOf(s.id);
-  const quran = quranCountOf(s.id);
+  const memorizedSurahs = memorizedSurahsLabelOf(s.id);
   const streak = studentStreakOf(s.id);
   const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
   const customBadges = s.customBadges || [];
@@ -1928,10 +1956,9 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
           <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
-        <div class="pmodal-stat" style="grid-column:1 / -1;position:relative">
-          ${isRaed ? `<button onclick="editQuranManually(${s.id})" title="تعديل عدد مرات التسميع يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
-          <div class="pmodal-stat-num">📖 ${quran}</div>
-          <div class="pmodal-stat-lbl">مرات تسميع القرآن</div>
+        <div class="pmodal-stat" style="grid-column:1 / -1">
+          <div class="pmodal-stat-num" style="font-size:1rem">📖 ${memorizedSurahs}</div>
+          <div class="pmodal-stat-lbl">تسميع القرآن</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1;background:none;box-shadow:none;padding:6px 0">
           <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:${isRaed ? '8px' : '0'}">
@@ -2387,6 +2414,29 @@ function selectCat(btn, cat) {
   selectedCat = cat;
   maybeSuggestAttendancePoints();
   updateStreakCheckboxVisibility();
+  updateTasmeeVisibility();
+}
+
+// خانة "تسجيل تسميع بدون نقاط" تظهر بس لما الفئة المختارة تكون "حفظ قرآن / أذكار"
+function updateTasmeeVisibility() {
+  const wrap = document.getElementById('quran-no-points-wrap');
+  if (!wrap) return;
+  const isQuran = selectedCat === 'حفظ قرآن / أذكار';
+  wrap.style.display = isQuran ? 'flex' : 'none';
+  if (!isQuran) {
+    const cb = document.getElementById('pts-no-points');
+    if (cb) cb.checked = false;
+    updateTasmeeSurahVisibility();
+  }
+}
+
+// إظهار قايمة السور وتعطيل خانة عدد النقاط لما يتفعّل خيار "تسجيل بدون نقاط"
+function updateTasmeeSurahVisibility() {
+  const checked = !!document.getElementById('pts-no-points')?.checked;
+  const surahWrap = document.getElementById('tasmee-surah-wrap');
+  if (surahWrap) surahWrap.style.display = checked ? 'block' : 'none';
+  const amountInput = document.getElementById('pts-amount');
+  if (amountInput) amountInput.disabled = checked;
 }
 
 // خانة "زيادة السترايك" تظهر بس لما الفئة المختارة تكون "حضور وانتظام" — بما إنه السترايك صار يدوي بالكامل
@@ -2642,13 +2692,29 @@ function setTeamLeader(teamId, role, studentId) {
 // ===================== GIVE POINTS =====================
 async function givePoints(dir) {
   const sid = selectedStudentId;
-  const amt = parseInt(document.getElementById('pts-amount').value) || 0;
-  const note = document.getElementById('pts-note').value.trim();
   if (!sid) { toast('اختر الطالب أولاً'); return; }
-  if (amt < 1) { toast('أدخل عدداً صحيحاً'); return; }
-
   const student = state.students.find(s => String(s.id) === String(sid));
   if (!student) { toast('الطالب غير موجود'); return; }
+
+  // مسار خاص: تسجيل تسميع سورة كاملة بدون أي نقاط
+  const noPointsMode = selectedCat === 'حفظ قرآن / أذكار' && document.getElementById('pts-no-points')?.checked;
+  if (noPointsMode) {
+    if (dir !== 1) { toast('⚠️ خيار "تسجيل بدون نقاط" متاح بس مع زر "منح النقاط"'); return; }
+    const surah = document.getElementById('pts-tasmee-surah').value;
+    const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-hidden-correction')?.checked;
+    logEntry('📖', `${escapeHTML(student.name)} سمّع ${escapeHTML(surah)} | حفظ قرآن / أذكار ✅ (بدون نقاط)`, {
+      kind: 'student', studentId: student.id, teamId: student.teamId || null, change: 0
+    }, isHiddenCorrection);
+    save(); render();
+    document.getElementById('pts-note').value = '';
+    if (document.getElementById('pts-hidden-correction')) document.getElementById('pts-hidden-correction').checked = false;
+    toast(`📖 تم تسجيل تسميع ${surah} لـ ${student.name}`);
+    return;
+  }
+
+  const amt = parseInt(document.getElementById('pts-amount').value) || 0;
+  const note = document.getElementById('pts-note').value.trim();
+  if (amt < 1) { toast('أدخل عدداً صحيحاً'); return; }
 
   // تنبيه لو الطالب أصلاً اتسجّل حضوره اليوم (لتفادي تكرار غير مقصود)
   if (dir === 1 && selectedCat === 'حضور وانتظام') {

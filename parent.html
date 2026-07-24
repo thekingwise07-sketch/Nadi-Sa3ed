@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-01">
+<meta name="app-build" content="2026-07-23-03">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -833,6 +833,22 @@ function quranCountOf(studentId) {
   return days.size;
 }
 
+// تحديد السور اللي "الحافظ" لها الطالب بناءً على تسجيلات التسميع بدون نقاط (الحجرات ولقمان)
+function memorizedSurahsLabelOf(studentId) {
+  const hasHujurat = state.log.some(l =>
+    l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+    l.text && l.text.includes('سمّع سورة الحجرات')
+  );
+  const hasLuqman = state.log.some(l =>
+    l.meta && l.meta.kind === 'student' && String(l.meta.studentId) === String(studentId) &&
+    l.text && l.text.includes('سمّع سورة لقمان')
+  );
+  if (hasHujurat && hasLuqman) return 'الحافظ لسورة الحجرات وسورة لقمان';
+  if (hasHujurat) return 'الحافظ لسورة الحجرات';
+  if (hasLuqman) return 'الحافظ لسورة لقمان';
+  return 'لم يشارك بالتسميع';
+}
+
 // يوم النادي الفعلي = يوم سُجِّل فيه حضور لأي طالب على الأقل (دليل على انعقاد جلسة)
 // سترايك الحضور (أيام نادي متتالية بدون انقطاع، بنفس منطق admin.html)
 function studentStreakOf(studentId) {
@@ -1100,7 +1116,7 @@ function renderStudentCard(s, sortedAll) {
   const attendance = attendanceCountOf(s.id);
   const goals = goalsOfStudent(s.id);
   const fajr = fajrCountOf(s.id);
-  const quran = quranCountOf(s.id);
+  const memorizedSurahs = memorizedSurahsLabelOf(s.id);
   const badges = getStudentBadges(s);
   const streak = studentStreakOf(s.id);
 
@@ -1116,8 +1132,8 @@ function renderStudentCard(s, sortedAll) {
       <div><div class="student-card-stat-num">${attendance}</div><div class="student-card-stat-lbl">حضور</div></div>
       <div><div class="student-card-stat-num">⚽ ${goals}</div><div class="student-card-stat-lbl">هدف</div></div>
       <div><div class="student-card-stat-num">🕌 ${fajr}</div><div class="student-card-stat-lbl">صلاة الفجر</div></div>
-      <div><div class="student-card-stat-num">📖 ${quran}</div><div class="student-card-stat-lbl">تسميع قرآن</div></div>
     </div>
+    <div style="margin-top:10px;background:rgba(255,255,255,0.12);border:1px solid rgba(234,182,72,0.4);border-radius:12px;padding:8px 12px;font-size:0.8rem;font-weight:800;color:var(--gold-light);position:relative;z-index:1">📖 ${memorizedSurahs}</div>
     ${badges.length ? `<div class="badges-row">${badges.map(b => `<span class="badge-chip">${b.icon} ${b.label}</span>`).join('')}</div>` : ''}
     <button class="btn-share" onclick="shareStudentCard('${s.id}')">📤 مشاركة البطاقة</button>
   </div>`;
