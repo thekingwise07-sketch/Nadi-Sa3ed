@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-07">
+<meta name="app-build" content="2026-07-23-08">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -1620,7 +1620,6 @@ function studentStreakOf(studentId) {
 
 // تعديل يدوي لسترايك الحضور (لو صار خطأ بالتسجيل التلقائي)
 async function editStreakManually(studentId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = studentStreakOf(studentId);
@@ -1803,7 +1802,6 @@ function memorizedSurahsLabelOf(studentId) {
 
 // تعديل يدوي لعدد مرات تسميع القرآن — رائد فقط
 async function editQuranManually(studentId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = quranCountOf(studentId);
@@ -1825,7 +1823,6 @@ async function editQuranManually(studentId) {
 
 // تعديل يدوي لعدد مرات صلاة الفجر — رائد فقط
 async function editFajrManually(studentId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = fajrCountOf(studentId);
@@ -1847,7 +1844,6 @@ async function editFajrManually(studentId) {
 
 // تعديل يدوي لعدد مرات الحضور — رائد فقط
 async function editAttendanceManually(studentId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا التعديل متاح لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = attendanceCountOf(studentId);
@@ -1869,7 +1865,6 @@ async function editAttendanceManually(studentId) {
 
 // ===================== الأوسمة المخصّصة (رائد فقط) =====================
 async function addCustomBadge(studentId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذه الميزة متاحة لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const icon = prompt('اختر إيموجي للوسام (مثال: 🏆)', '🏆');
@@ -1885,7 +1880,6 @@ async function addCustomBadge(studentId) {
 }
 
 function removeCustomBadge(studentId, index) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذه الميزة متاحة لرائد فقط'); return; }
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student || !student.customBadges || !student.customBadges[index]) return;
   const removed = student.customBadges[index];
@@ -1938,12 +1932,12 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-lbl">${team ? '🏅 نقاط ' + team.name : 'بلا فريق'}</div>
         </div>
         <div class="pmodal-stat" style="position:relative">
-          ${isRaed ? `<button onclick="editAttendanceManually(${s.id})" title="تعديل عدد الحضور يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
+          <button onclick="editAttendanceManually(${s.id})" title="تعديل عدد الحضور يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
           <div class="pmodal-stat-num">📅 ${attendance}</div>
           <div class="pmodal-stat-lbl">مرات الحضور${s.attendanceOverride !== undefined && s.attendanceOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
         </div>
         <div class="pmodal-stat" style="position:relative">
-          ${isRaed ? `<button onclick="editFajrManually(${s.id})" title="تعديل صلاة الفجر يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
+          <button onclick="editFajrManually(${s.id})" title="تعديل صلاة الفجر يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
           <div class="pmodal-stat-num">🕌 ${fajr}</div>
           <div class="pmodal-stat-lbl">صلاة الفجر${s.fajrOverride !== undefined && s.fajrOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
         </div>
@@ -1952,7 +1946,7 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-lbl">أهدافه بالدوري</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fbeedc,#ffe0b2);border:1px solid #eda355' : ''}">
-          ${isRaed ? `<button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>` : ''}
+          <button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
           <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
           <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
@@ -1961,14 +1955,14 @@ function openStudentModal(studentId) {
           <div class="pmodal-stat-lbl">تسميع القرآن</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1;background:none;box-shadow:none;padding:6px 0">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:${isRaed ? '8px' : '0'}">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px">
             ${customBadges.map((b, i) => `
               <span style="background:#fbecc9;border:1px solid #e0b23e;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;color:#7a5a12;display:inline-flex;align-items:center;gap:6px">
                 ${escapeHTML(b.icon)} ${escapeHTML(b.label)}
-                ${isRaed ? `<button onclick="removeCustomBadge(${s.id},${i})" style="background:none;border:none;color:#b8462f;cursor:pointer;font-size:0.8rem;padding:0;line-height:1">✕</button>` : ''}
+                <button onclick="removeCustomBadge(${s.id},${i})" style="background:none;border:none;color:#b8462f;cursor:pointer;font-size:0.8rem;padding:0;line-height:1">✕</button>
               </span>`).join('')}
           </div>
-          ${isRaed ? `<button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#7a5a12;border:2px solid #e0b23e" onclick="addCustomBadge(${s.id})">🏅 إضافة وسام مخصّص</button>` : ''}
+          <button class="btn btn-sm" style="width:auto;background:#fbecc9;color:#7a5a12;border:2px solid #e0b23e" onclick="addCustomBadge(${s.id})">🏅 إضافة وسام مخصّص</button>
         </div>
       </div>
     </div>`;
