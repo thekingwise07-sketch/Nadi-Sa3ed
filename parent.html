@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-01">
+<meta name="app-build" content="2026-07-25-02">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -498,18 +498,24 @@
     <div id="spotlight-team"></div>
   </div>
 
-  <div class="card">
+  <div class="seg-toggle" id="home-lists-tabs">
+    <button class="seg-btn active" onclick="setHomeListTab('fajr')">🕌 الفجر</button>
+    <button class="seg-btn" onclick="setHomeListTab('points')">🥇 النقاط</button>
+    <button class="seg-btn" onclick="setHomeListTab('teams')">🏆 الفرق</button>
+  </div>
+
+  <div class="card" id="home-list-fajr">
     <div class="card-title">🕌 أعلى الطلاب حضوراً للفجر</div>
     <div id="home-fajr-leaders"></div>
     <button class="btn-share" id="fajr-leaders-toggle-btn" style="display:none;background:var(--green-mid);margin-top:10px" onclick="toggleFajrLeadersExpanded()"></button>
   </div>
 
-  <div class="card">
+  <div class="card" id="home-list-points" style="display:none">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
     <div id="home-top-students"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="home-list-teams" style="display:none">
     <div class="card-title">🏆 ترتيب الفرق</div>
     <div id="home-top-teams"></div>
   </div>
@@ -1011,6 +1017,15 @@ function renderFajrLeaders() {
 }
 
 // ===================== RENDER: HOME =====================
+function setHomeListTab(tab) {
+  document.querySelectorAll('#home-lists-tabs .seg-btn').forEach((b, i) => {
+    b.classList.toggle('active', (tab === 'fajr' && i === 0) || (tab === 'points' && i === 1) || (tab === 'teams' && i === 2));
+  });
+  document.getElementById('home-list-fajr').style.display = tab === 'fajr' ? 'block' : 'none';
+  document.getElementById('home-list-points').style.display = tab === 'points' ? 'block' : 'none';
+  document.getElementById('home-list-teams').style.display = tab === 'teams' ? 'block' : 'none';
+}
+
 function renderHome() {
   document.getElementById('h-students').textContent = state.students.length;
   document.getElementById('h-teams').textContent = state.teams.length;
