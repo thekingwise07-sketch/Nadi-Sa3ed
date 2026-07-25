@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-08">
+<meta name="app-build" content="2026-07-25-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -869,6 +869,7 @@
 
   <div class="card">
     <div class="card-title">👥 قائمة الطلاب</div>
+    <div id="students-team-tabs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding-bottom:2px"></div>
     <input type="text" id="students-search" placeholder="🔍 ابحث عن طالب بالاسم..." oninput="renderStudentsList()" style="margin-bottom:10px">
     <div id="students-list"></div>
   </div>
@@ -1623,14 +1624,14 @@ async function editStreakManually(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = studentStreakOf(studentId);
-  const input = prompt(`عدّل عدد أيام السترايك المتتالية لـ ${student.name}`, current);
-  if (input === null) return; // إلغاء
-  const val = parseInt(input, 10);
-  if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
-  student.streak = val;
-  logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
-  save(); render();
-  toast('✅ تم تحديث السترايك');
+  showTextPromptModal(`عدّل عدد أيام السترايك المتتالية لـ ${student.name}`, current, (input) => {
+    const val = parseInt(input, 10);
+    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+    student.streak = val;
+    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لسترايك الحضور إلى ${val} ${val === 1 ? 'يوم' : 'أيام'}`);
+    save(); render();
+    toast('✅ تم تحديث السترايك');
+  });
 }
 
 // النقاط المقترحة لحضور اليوم بناءً على السترايك الحالي للطالب (قبل تسجيل حضور اليوم):
@@ -1805,20 +1806,20 @@ async function editQuranManually(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = quranCountOf(studentId);
-  const input = prompt(`عدّل عدد مرات تسميع القرآن لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
-  if (input === null) return;
-  if (input.trim() === '') {
-    delete student.quranOverride;
-    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات تسميع القرآن للحساب التلقائي`);
-  } else {
-    const val = parseInt(input, 10);
-    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
-    student.quranOverride = val;
-    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات تسميع القرآن إلى ${val}`);
-  }
-  save(); render();
-  toast('✅ تم تحديث عدد مرات التسميع');
-  openStudentModal(studentId);
+  showTextPromptModal(`عدّل عدد مرات تسميع القرآن لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current, (input) => {
+    if (input.trim() === '') {
+      delete student.quranOverride;
+      logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات تسميع القرآن للحساب التلقائي`);
+    } else {
+      const val = parseInt(input, 10);
+      if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+      student.quranOverride = val;
+      logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات تسميع القرآن إلى ${val}`);
+    }
+    save(); render();
+    toast('✅ تم تحديث عدد مرات التسميع');
+    openStudentModal(studentId);
+  });
 }
 
 // تعديل يدوي لعدد مرات صلاة الفجر — رائد فقط
@@ -1826,20 +1827,20 @@ async function editFajrManually(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = fajrCountOf(studentId);
-  const input = prompt(`عدّل عدد مرات صلاة الفجر لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
-  if (input === null) return;
-  if (input.trim() === '') {
-    delete student.fajrOverride;
-    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات صلاة الفجر للحساب التلقائي`);
-  } else {
-    const val = parseInt(input, 10);
-    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
-    student.fajrOverride = val;
-    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات صلاة الفجر إلى ${val}`);
-  }
-  save(); render();
-  toast('✅ تم تحديث عدد مرات صلاة الفجر');
-  openStudentModal(studentId);
+  showTextPromptModal(`عدّل عدد مرات صلاة الفجر لـ ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current, (input) => {
+    if (input.trim() === '') {
+      delete student.fajrOverride;
+      logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات صلاة الفجر للحساب التلقائي`);
+    } else {
+      const val = parseInt(input, 10);
+      if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+      student.fajrOverride = val;
+      logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات صلاة الفجر إلى ${val}`);
+    }
+    save(); render();
+    toast('✅ تم تحديث عدد مرات صلاة الفجر');
+    openStudentModal(studentId);
+  });
 }
 
 // تعديل يدوي لعدد مرات الحضور — رائد فقط
@@ -1847,36 +1848,38 @@ async function editAttendanceManually(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
   const current = attendanceCountOf(studentId);
-  const input = prompt(`عدّل عدد مرات حضور ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current);
-  if (input === null) return;
-  if (input.trim() === '') {
-    delete student.attendanceOverride;
-    logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات الحضور للحساب التلقائي`);
-  } else {
-    const val = parseInt(input, 10);
-    if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
-    student.attendanceOverride = val;
-    logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات الحضور إلى ${val}`);
-  }
-  save(); render();
-  toast('✅ تم تحديث عدد مرات الحضور');
-  openStudentModal(studentId);
+  showTextPromptModal(`عدّل عدد مرات حضور ${student.name}\n(اترك الحقل فاضي وامسحه بالكامل عشان يرجع للحساب التلقائي)`, current, (input) => {
+    if (input.trim() === '') {
+      delete student.attendanceOverride;
+      logEntry('🔄', `${escapeHTML(student.name)}: رجّع عدد مرات الحضور للحساب التلقائي`);
+    } else {
+      const val = parseInt(input, 10);
+      if (isNaN(val) || val < 0) { toast('⚠️ رقم غير صالح'); return; }
+      student.attendanceOverride = val;
+      logEntry('✏️', `${escapeHTML(student.name)}: تعديل يدوي لعدد مرات الحضور إلى ${val}`);
+    }
+    save(); render();
+    toast('✅ تم تحديث عدد مرات الحضور');
+    openStudentModal(studentId);
+  });
 }
 
 // ===================== الأوسمة المخصّصة (رائد فقط) =====================
 async function addCustomBadge(studentId) {
   const student = state.students.find(s => String(s.id) === String(studentId));
   if (!student) return;
-  const icon = prompt('اختر إيموجي للوسام (مثال: 🏆)', '🏆');
-  if (icon === null || !icon.trim()) return;
-  const label = prompt('نص الوسام (مثال: بطل الأسبوع)', '');
-  if (label === null || !label.trim()) return;
-  if (!student.customBadges) student.customBadges = [];
-  student.customBadges.push({ icon: icon.trim(), label: label.trim() });
-  logEntry('🏅', `${escapeHTML(student.name)}: إضافة وسام مخصّص "${escapeHTML(icon.trim())} ${escapeHTML(label.trim())}"`);
-  save(); render();
-  toast('✅ تم إضافة الوسام');
-  openStudentModal(studentId);
+  showTextPromptModal('اختر إيموجي للوسام (مثال: 🏆)', '🏆', (icon) => {
+    if (!icon.trim()) return;
+    showTextPromptModal('نص الوسام (مثال: بطل الأسبوع)', '', (label) => {
+      if (!label.trim()) return;
+      if (!student.customBadges) student.customBadges = [];
+      student.customBadges.push({ icon: icon.trim(), label: label.trim() });
+      logEntry('🏅', `${escapeHTML(student.name)}: إضافة وسام مخصّص "${escapeHTML(icon.trim())} ${escapeHTML(label.trim())}"`);
+      save(); render();
+      toast('✅ تم إضافة الوسام');
+      openStudentModal(studentId);
+    });
+  });
 }
 
 function removeCustomBadge(studentId, index) {
@@ -1972,6 +1975,45 @@ function openStudentModal(studentId) {
 function closeStudentModal() {
   const backdrop = document.getElementById('pmodal-backdrop');
   if (backdrop) backdrop.classList.remove('show');
+}
+
+// ===================== مودال إدخال نصي بديل عن window.prompt() =====================
+// window.prompt() ما بيشتغل إطلاقاً بمتصفح Safari على آيفون لما يكون التطبيق مثبّت كـ PWA
+// (يرجّع null فوراً من غير ما يعرض أي نافذة) — فبنينا مودال بديل يشتغل بكل الحالات
+function showTextPromptModal(title, defaultValue, onSubmit) {
+  let backdrop = document.getElementById('textprompt-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'textprompt-backdrop';
+    backdrop.className = 'pmodal-backdrop';
+    document.body.appendChild(backdrop);
+  }
+  window.__textPromptCallback = onSubmit;
+  backdrop.innerHTML = `
+    <div class="pmodal-box" style="max-width:340px;padding:22px;border-radius:20px">
+      <div style="font-weight:800;margin-bottom:14px;color:var(--green-deep);white-space:pre-line;line-height:1.6">${escapeHTML(title)}</div>
+      <input type="text" id="textprompt-input" value="${escapeHTML(defaultValue === undefined || defaultValue === null ? '' : String(defaultValue))}"
+        style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid var(--line);margin-bottom:14px;font-family:inherit;font-size:1rem;text-align:center">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" style="background:var(--gray-soft,#eee);color:var(--gray-text)" onclick="closeTextPromptModal()">إلغاء</button>
+        <button class="btn btn-sm btn-gold" onclick="submitTextPromptModal()">حفظ</button>
+      </div>
+    </div>`;
+  requestAnimationFrame(() => backdrop.classList.add('show'));
+  const inp = document.getElementById('textprompt-input');
+  setTimeout(() => { inp?.focus(); inp?.select(); }, 60);
+  if (inp) inp.onkeydown = (e) => { if (e.key === 'Enter') submitTextPromptModal(); };
+}
+function closeTextPromptModal() {
+  const backdrop = document.getElementById('textprompt-backdrop');
+  if (backdrop) backdrop.classList.remove('show');
+  window.__textPromptCallback = null;
+}
+function submitTextPromptModal() {
+  const val = document.getElementById('textprompt-input')?.value ?? '';
+  const cb = window.__textPromptCallback;
+  closeTextPromptModal();
+  if (cb) cb(val);
 }
 
 function startOfWeekISO(d) {
@@ -3132,7 +3174,33 @@ function renderHome() {
   }
 }
 
+let studentsTeamFilter = null; // null = عرض كل الطلاب، أو تحديد فريق معيّن لعرض ترتيبه فقط
+
+function renderStudentsTeamTabs() {
+  const wrap = document.getElementById('students-team-tabs');
+  if (!wrap) return;
+  if (!state.teams.length) { wrap.innerHTML = ''; return; }
+  const tabBtn = (id, label, color) => `
+    <button onclick="setStudentsTeamFilter(${id === null ? 'null' : `'${id}'`})"
+      style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${studentsTeamFilter === id ? 'transparent' : 'var(--line)'};
+      background:${studentsTeamFilter === id ? (color || 'var(--green-mid)') : 'var(--paper)'};
+      color:${studentsTeamFilter === id ? 'white' : 'var(--gray-text)'};
+      font-weight:800; font-size:0.8rem; white-space:nowrap; cursor:pointer; transition:all 0.15s var(--ease)">
+      ${label}
+    </button>`;
+  wrap.innerHTML = tabBtn(null, '👥 الكل') + state.teams.map(t =>
+    tabBtn(t.id, `${escapeHTML(t.name)}`, t.color)
+  ).join('');
+}
+
+function setStudentsTeamFilter(teamId) {
+  studentsTeamFilter = teamId === null ? null : String(teamId);
+  renderStudentsTeamTabs();
+  renderStudentsList();
+}
+
 function renderStudentsList() {
+  renderStudentsTeamTabs();
   const el = document.getElementById('students-list');
   if (!state.students.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>أضف الطلاب أولاً</p></div>';
@@ -3141,6 +3209,7 @@ function renderStudentsList() {
   const searchInput = document.getElementById('students-search');
   const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
   let filtered = state.students.slice();
+  if (studentsTeamFilter !== null) filtered = filtered.filter(s => String(s.teamId) === studentsTeamFilter);
   if (query) filtered = filtered.filter(s => s.name.toLowerCase().includes(query));
 
   if (!filtered.length) {

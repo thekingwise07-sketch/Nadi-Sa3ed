@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-23-03">
+<meta name="app-build" content="2026-07-25-01">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -539,6 +539,8 @@
     <button class="seg-btn" id="seg-teams" onclick="setRankMode('teams')">🏅 الفرق</button>
   </div>
 
+  <div id="rank-team-tabs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;padding-bottom:2px"></div>
+
   <div class="card" id="rank-content"></div>
 </div>
 
@@ -711,6 +713,7 @@ let state = {
   league: { playerOfWeek: {}, tournament: null }
 };
 let rankMode = 'students';
+let rankTeamFilter = null; // null = عرض كل الطلاب، أو تحديد فريق معيّن لعرض ترتيبه فقط
 let leagueTab = 'played';
 let scorersExpanded = false;
 let fajrLeadersExpanded = false;
@@ -916,6 +919,32 @@ function setRankMode(mode) {
   rankMode = mode;
   document.getElementById('seg-students').classList.toggle('active', mode === 'students');
   document.getElementById('seg-teams').classList.toggle('active', mode === 'teams');
+  const tabsWrap = document.getElementById('rank-team-tabs');
+  if (tabsWrap) tabsWrap.style.display = mode === 'students' ? 'flex' : 'none';
+  renderRankTeamTabs();
+  renderRanking();
+}
+
+function renderRankTeamTabs() {
+  const wrap = document.getElementById('rank-team-tabs');
+  if (!wrap) return;
+  if (rankMode !== 'students' || !state.teams.length) { wrap.innerHTML = ''; return; }
+  const tabBtn = (id, label, color) => `
+    <button onclick="setRankTeamFilter(${id === null ? 'null' : `'${id}'`})"
+      style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${rankTeamFilter === id ? 'transparent' : 'var(--line)'};
+      background:${rankTeamFilter === id ? (color || 'var(--green-mid)') : 'var(--paper)'};
+      color:${rankTeamFilter === id ? 'white' : 'var(--gray-text)'};
+      font-weight:800; font-size:0.8rem; white-space:nowrap; cursor:pointer; transition:all 0.15s var(--ease)">
+      ${label}
+    </button>`;
+  wrap.innerHTML = tabBtn(null, '👥 الكل') + state.teams.map(t =>
+    tabBtn(t.id, escapeHTML(t.name), t.color)
+  ).join('');
+}
+
+function setRankTeamFilter(teamId) {
+  rankTeamFilter = teamId === null ? null : String(teamId);
+  renderRankTeamTabs();
   renderRanking();
 }
 
@@ -1157,7 +1186,9 @@ function shareStudentCard(id) {
 function renderRanking() {
   const el = document.getElementById('rank-content');
   if (rankMode === 'students') {
-    const sorted = state.students.slice().sort((a,b) => b.points - a.points);
+    let list = state.students.slice();
+    if (rankTeamFilter !== null) list = list.filter(s => String(s.teamId) === rankTeamFilter);
+    const sorted = list.sort((a,b) => b.points - a.points);
     el.innerHTML = renderRankList(sorted.map((s,i) => ({
       rank: i+1, kind: 'student', id: s.id, name: s.name, photo: s.photo,
       sub: (() => { const t = teamOf(s); return t ? t.name : '—'; })(),
@@ -1343,6 +1374,7 @@ function renderLeague() {
 function renderAll() {
   renderHome();
   renderSearch();
+  renderRankTeamTabs();
   renderRanking();
   renderLeague();
 }
