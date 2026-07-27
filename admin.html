@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-03">
+<meta name="app-build" content="2026-07-25-04">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -781,6 +781,10 @@
     <label id="streak-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
       <input type="checkbox" id="pts-streak" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
       🔥 زيادة السترايك (+1 يوم متتالي)
+    </label>
+    <label id="fajr-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
+      <input type="checkbox" id="pts-fajr" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
+      🕌 زيادة عدد مرات صلاة الفجر (+1)
     </label>
     <label id="hidden-correction-wrap" style="display:none;align-items:center;gap:8px;background:#fbeedc;border:2px dashed #eda355;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.82rem;color:#6b4a12;cursor:pointer">
       <input type="checkbox" id="pts-hidden-correction" style="width:20px;height:20px;accent-color:#eda355;margin:0">
@@ -2521,10 +2525,17 @@ function updateTasmeeSurahVisibility() {
 // خانة "زيادة السترايك" تظهر بس لما الفئة المختارة تكون "حضور وانتظام" — بما إنه السترايك صار يدوي بالكامل
 function updateStreakCheckboxVisibility() {
   const wrap = document.getElementById('streak-check-wrap');
-  if (!wrap) return;
-  const isAttendance = selectedCat === 'حضور وانتظام';
-  wrap.style.display = isAttendance ? 'flex' : 'none';
-  if (!isAttendance) { const cb = document.getElementById('pts-streak'); if (cb) cb.checked = false; }
+  if (wrap) {
+    const isAttendance = selectedCat === 'حضور وانتظام';
+    wrap.style.display = isAttendance ? 'flex' : 'none';
+    if (!isAttendance) { const cb = document.getElementById('pts-streak'); if (cb) cb.checked = false; }
+  }
+  const fajrWrap = document.getElementById('fajr-check-wrap');
+  if (fajrWrap) {
+    const isFajr = selectedCat === '🕌 صلاة الفجر';
+    fajrWrap.style.display = isFajr ? 'flex' : 'none';
+    if (!isFajr) { const cb = document.getElementById('pts-fajr'); if (cb) cb.checked = false; }
+  }
 }
 
 function setQuickPts(n) {
@@ -2820,6 +2831,7 @@ async function givePoints(dir) {
 
   const isHiddenCorrection = sessionStorage.getItem('nadyAdmin') === 'رائد' && document.getElementById('pts-hidden-correction')?.checked;
   const streakChecked = dir === 1 && selectedCat === 'حضور وانتظام' && document.getElementById('pts-streak')?.checked;
+  const fajrChecked = dir === 1 && selectedCat === '🕌 صلاة الفجر' && document.getElementById('pts-fajr')?.checked;
   const noteText = note ? ` (${escapeHTML(note)})` : '';
   const icon = dir === 1 ? '⭐' : '➖';
   const sign = dir === 1 ? '+' : '-';
@@ -2832,12 +2844,18 @@ async function givePoints(dir) {
     logEntry('🔥', `${escapeHTML(student.name)}: زيادة السترايك يدوياً إلى ${student.streak} ${student.streak === 1 ? 'يوم' : 'أيام'}`, null, isHiddenCorrection);
   }
 
+  if (fajrChecked) {
+    student.fajrOverride = fajrCountOf(student.id) + 1;
+    logEntry('🕌', `${escapeHTML(student.name)}: زيادة عدد مرات صلاة الفجر يدوياً إلى ${student.fajrOverride}`, null, isHiddenCorrection);
+  }
+
   save(); render();
   document.getElementById('pts-amount').value = 1;
   document.getElementById('pts-note').value = '';
   if (document.getElementById('pts-hidden-correction')) document.getElementById('pts-hidden-correction').checked = false;
   if (document.getElementById('pts-streak')) document.getElementById('pts-streak').checked = false;
-  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${streakChecked ? ' 🔥' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
+  if (document.getElementById('pts-fajr')) document.getElementById('pts-fajr').checked = false;
+  toast(`${icon} ${sign}${amt} نقطة لـ ${student.name}${streakChecked ? ' 🔥' : ''}${fajrChecked ? ' 🕌' : ''}${isHiddenCorrection ? ' 🙈' : ''}`);
 }
 
 function giveTeamPoints(dir) {
