@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-01">
+<meta name="app-build" content="2026-07-25-02">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -701,14 +701,23 @@
     <button class="btn btn-gold" style="margin-top:10px" onclick="startNewWeek()">🔄 بدء أسبوع جديد (أرشفة بدون فقد بيانات)</button>
   </div>
 
+  <!-- تبويبات القوائم -->
+  <div id="home-lists-tabs" style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;padding-bottom:2px"></div>
+
+  <!-- الفجر -->
+  <div class="card" id="home-list-fajr">
+    <div class="card-title">🕌 أعلى الطلاب حضوراً للفجر</div>
+    <div id="home-fajr-leaders"></div>
+  </div>
+
   <!-- Top 3 -->
-  <div class="card">
+  <div class="card" id="home-list-points" style="display:none">
     <div class="card-title">🥇 أعلى الطلاب نقاطاً</div>
     <div id="home-top3"></div>
   </div>
 
   <!-- Team Standings -->
-  <div class="card">
+  <div class="card" id="home-list-teams" style="display:none">
     <div class="card-title">🏅 ترتيب الفرق</div>
     <div id="home-teams-rank"></div>
   </div>
@@ -823,6 +832,7 @@
       <input type="checkbox" id="bulk-streak" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
       🔥 زيادة السترايك للكل (+1 يوم متتالي لكل طالب محدد)
     </label>
+    <button class="btn btn-sm" style="width:100%;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78;margin-bottom:10px" onclick="resetBulkStreak()">🧊 تصفير سترايك المحددين إلى صفر</button>
     <input type="text" id="bulk-note" placeholder="ملاحظة (اختياري)">
     <button class="btn btn-gold" onclick="giveBulkPoints()">🎯 منح النقاط للمحددين</button>
   </div>
@@ -1993,7 +2003,7 @@ function showTextPromptModal(title, defaultValue, onSubmit) {
     <div class="pmodal-box" style="max-width:340px;padding:22px;border-radius:20px">
       <div style="font-weight:800;margin-bottom:14px;color:var(--green-deep);white-space:pre-line;line-height:1.6">${escapeHTML(title)}</div>
       <input type="text" id="textprompt-input" value="${escapeHTML(defaultValue === undefined || defaultValue === null ? '' : String(defaultValue))}"
-        style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid var(--line);margin-bottom:14px;font-family:inherit;font-size:1rem;text-align:center">
+        style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid var(--gray-soft);margin-bottom:14px;font-family:inherit;font-size:1rem;text-align:center">
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm" style="background:var(--gray-soft,#eee);color:var(--gray-text)" onclick="closeTextPromptModal()">إلغاء</button>
         <button class="btn btn-sm btn-gold" onclick="submitTextPromptModal()">حفظ</button>
@@ -2152,6 +2162,19 @@ function updateBulkStreakCheckboxVisibility() {
 
 function setQuickBulkPts(n) {
   document.getElementById('bulk-amount').value = n;
+}
+
+// تصفير سترايك الحضور للطلاب المحددين بالمنح الجماعي (بدون التأثير على النقاط)
+function resetBulkStreak() {
+  const teamId = document.getElementById('bulk-team')?.value || '';
+  const students = state.students.filter(s =>
+    (!teamId || String(s.teamId) === String(teamId)) && !bulkExcluded.has(s.id)
+  );
+  if (!students.length) { toast('لا يوجد طلاب محددون'); return; }
+  students.forEach(s => { s.streak = 0; });
+  logEntry('🧊', `تصفير سترايك الحضور لـ ${students.length} طالب (منح جماعي)`);
+  save(); render();
+  toast(`🧊 تم تصفير سترايك ${students.length} طالب`);
 }
 
 function giveBulkPoints() {
@@ -3119,7 +3142,30 @@ function updateStats() {
   document.getElementById('stat-total-pts').textContent = total;
 }
 
+let homeListTab = 'fajr';
+function renderHomeListsTabs() {
+  const wrap = document.getElementById('home-lists-tabs');
+  if (!wrap) return;
+  const opts = [['fajr','🕌 الفجر'], ['points','🥇 النقاط'], ['teams','🏅 الفرق']];
+  wrap.innerHTML = opts.map(([id, label]) => `
+    <button onclick="setHomeListTab('${id}')"
+      style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${homeListTab === id ? 'transparent' : 'var(--gray-soft)'};
+      background:${homeListTab === id ? 'var(--green-mid)' : 'var(--white)'};
+      color:${homeListTab === id ? 'white' : 'var(--gray-text)'};
+      font-weight:800; font-size:0.8rem; white-space:nowrap; cursor:pointer; transition:all 0.15s var(--ease)">
+      ${label}
+    </button>`).join('');
+}
+function setHomeListTab(tab) {
+  homeListTab = tab;
+  renderHomeListsTabs();
+  document.getElementById('home-list-fajr').style.display = tab === 'fajr' ? 'block' : 'none';
+  document.getElementById('home-list-points').style.display = tab === 'points' ? 'block' : 'none';
+  document.getElementById('home-list-teams').style.display = tab === 'teams' ? 'block' : 'none';
+}
+
 function renderHome() {
+  renderHomeListsTabs();
   renderAlerts();
   // ملخص الأسبوع الحالي
   document.getElementById('week-range-label').textContent =
@@ -3136,6 +3182,24 @@ function renderHome() {
       ${topStudentWeek ? `<div class="student-item"><div class="student-info"><span style="font-size:1.3rem">🌟</span><div><div class="student-name clickable-name" onclick="openStudentModal(${topStudentWeek.id})">${escapeHTML(topStudentWeek.name)}</div><div class="student-team">طالب الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topStudentWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
       ${topTeamWeek ? `<div class="student-item"><div class="student-info"><span class="team-color-dot" style="background:${topTeamWeek.color || '#2fae8f'};width:18px;height:18px"></span><div><div class="student-name">${escapeHTML(topTeamWeek.name)}</div><div class="student-team">فريق الأسبوع</div></div></div><div class="student-pts">${weekPointsOf(topTeamWeek)}<div class="pts-label">نقطة</div></div></div>` : ''}
     `;
+  }
+
+  // أعلى الطلاب حضوراً للفجر
+  const fl = document.getElementById('home-fajr-leaders');
+  const fajrSorted = state.students.slice().sort((a,b) => fajrCountOf(b.id) - fajrCountOf(a.id)).slice(0, 10);
+  if (!fajrSorted.length || fajrCountOf(fajrSorted[0].id) === 0) {
+    fl.innerHTML = '<div class="empty"><div class="empty-icon">🕌</div><p>لا يوجد طلاب مسجَّلين لصلاة الفجر بعد</p></div>';
+  } else {
+    fl.innerHTML = fajrSorted.filter(s => fajrCountOf(s.id) > 0).map((s, i) => {
+      const team = state.teams.find(t => t.id == s.teamId);
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+      const dot = team ? `<span class="team-color-dot" style="background:${team.color || '#2fae8f'}"></span>` : '';
+      return `<div class="rank-item rank-${i < 3 ? i+1 : 'other'}">
+        <div class="rank-badge">${medal}</div>
+        <div class="rank-name clickable-name" onclick="openStudentModal(${s.id})">${escapeHTML(s.name)}<br><span style="font-size:0.72rem;color:var(--gray-text)">${dot}${team ? escapeHTML(team.name) : ''}</span></div>
+        <div class="rank-pts">🕌 ${fajrCountOf(s.id)}<span class="pts-label"> مرة</span></div>
+      </div>`;
+    }).join('');
   }
 
   // Top 3
@@ -3182,8 +3246,8 @@ function renderStudentsTeamTabs() {
   if (!state.teams.length) { wrap.innerHTML = ''; return; }
   const tabBtn = (id, label, color) => `
     <button onclick="setStudentsTeamFilter(${id === null ? 'null' : `'${id}'`})"
-      style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${studentsTeamFilter === id ? 'transparent' : 'var(--line)'};
-      background:${studentsTeamFilter === id ? (color || 'var(--green-mid)') : 'var(--paper)'};
+      style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${studentsTeamFilter === id ? 'transparent' : 'var(--gray-soft)'};
+      background:${studentsTeamFilter === id ? (color || 'var(--green-mid)') : 'var(--white)'};
       color:${studentsTeamFilter === id ? 'white' : 'var(--gray-text)'};
       font-weight:800; font-size:0.8rem; white-space:nowrap; cursor:pointer; transition:all 0.15s var(--ease)">
       ${label}
