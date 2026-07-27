@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-02">
+<meta name="app-build" content="2026-07-25-03">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -831,6 +831,10 @@
     <label id="bulk-streak-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
       <input type="checkbox" id="bulk-streak" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
       🔥 زيادة السترايك للكل (+1 يوم متتالي لكل طالب محدد)
+    </label>
+    <label id="bulk-fajr-check-wrap" style="display:none;align-items:center;gap:8px;background:#e6f4ef;border:2px solid var(--green-mid);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--green-deep);cursor:pointer">
+      <input type="checkbox" id="bulk-fajr" style="width:20px;height:20px;accent-color:var(--green-mid);margin:0">
+      🕌 زيادة عدد مرات صلاة الفجر للكل (+1 لكل طالب محدد)
     </label>
     <button class="btn btn-sm" style="width:100%;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78;margin-bottom:10px" onclick="resetBulkStreak()">🧊 تصفير سترايك المحددين إلى صفر</button>
     <input type="text" id="bulk-note" placeholder="ملاحظة (اختياري)">
@@ -2154,10 +2158,17 @@ function selectBulkCat(btn, cat) {
 
 function updateBulkStreakCheckboxVisibility() {
   const wrap = document.getElementById('bulk-streak-check-wrap');
-  if (!wrap) return;
-  const isAttendance = selectedBulkCat === 'حضور وانتظام';
-  wrap.style.display = isAttendance ? 'flex' : 'none';
-  if (!isAttendance) { const cb = document.getElementById('bulk-streak'); if (cb) cb.checked = false; }
+  if (wrap) {
+    const isAttendance = selectedBulkCat === 'حضور وانتظام';
+    wrap.style.display = isAttendance ? 'flex' : 'none';
+    if (!isAttendance) { const cb = document.getElementById('bulk-streak'); if (cb) cb.checked = false; }
+  }
+  const fajrWrap = document.getElementById('bulk-fajr-check-wrap');
+  if (fajrWrap) {
+    const isFajr = selectedBulkCat === '🕌 صلاة الفجر';
+    fajrWrap.style.display = isFajr ? 'flex' : 'none';
+    if (!isFajr) { const cb = document.getElementById('bulk-fajr'); if (cb) cb.checked = false; }
+  }
 }
 
 function setQuickBulkPts(n) {
@@ -2219,11 +2230,20 @@ function giveBulkPoints() {
     logEntry('🔥', `زيادة السترايك يدوياً لـ ${students.length} طالب (منح جماعي)`);
   }
 
+  const fajrChecked = selectedBulkCat === '🕌 صلاة الفجر' && document.getElementById('bulk-fajr')?.checked;
+  if (fajrChecked) {
+    students.forEach(s => {
+      s.fajrOverride = fajrCountOf(s.id) + 1;
+    });
+    logEntry('🕌', `زيادة عدد مرات صلاة الفجر يدوياً لـ ${students.length} طالب (منح جماعي)`);
+  }
+
   save(); render();
-  toast(`✅ تم منح ${amt} نقطة لـ ${students.length} طالب${streakChecked ? ' 🔥' : ''}`);
+  toast(`✅ تم منح ${amt} نقطة لـ ${students.length} طالب${streakChecked ? ' 🔥' : ''}${fajrChecked ? ' 🕌' : ''}`);
   document.getElementById('bulk-amount').value = 1;
   document.getElementById('bulk-note').value = '';
   if (document.getElementById('bulk-streak')) document.getElementById('bulk-streak').checked = false;
+  if (document.getElementById('bulk-fajr')) document.getElementById('bulk-fajr').checked = false;
 }
 
 // === بطاقة الطالب (وضع العرض العام) ===
