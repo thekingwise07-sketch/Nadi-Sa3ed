@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>نقاطي – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-03">
+<meta name="app-build" content="2026-07-25-04">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -96,6 +96,11 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 1.2rem; flex-shrink: 0;
     box-shadow: 0 3px 10px rgba(0,0,0,0.3), 0 0 0 2px rgba(234,182,72,0.25);
+    animation: badgeFloat 4s ease-in-out infinite;
+  }
+  @keyframes badgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
   }
   .topbar-title { font-size: 1.02rem; font-weight: 900; letter-spacing: -0.2px; }
   .topbar-sub { font-size: 0.68rem; opacity: 0.65; font-weight: 500; margin-top: 1px; }
@@ -145,6 +150,11 @@
     background: var(--paper); border-radius: var(--radius-lg);
     padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow-sm);
     border: 1px solid rgba(12,58,47,0.05); transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+    animation: cardBreathe 7s ease-in-out infinite;
+  }
+  @keyframes cardBreathe {
+    0%, 100% { box-shadow: var(--shadow-sm); }
+    50% { box-shadow: 0 6px 22px rgba(12,58,47,0.13); }
   }
   .card-title {
     font-size: 0.95rem; font-weight: 800; color: var(--green-deep);
@@ -184,6 +194,7 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 1.15rem; color: var(--green-deep);
     overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.25), 0 0 0 2px rgba(234,182,72,0.3);
+    animation: badgeFloat 4s ease-in-out infinite;
   }
   .spotlight-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .spotlight-name { font-size: 1.05rem; font-weight: 900; }
@@ -273,6 +284,7 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 1.7rem; color: var(--green-deep);
     overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,0.28), 0 0 0 3px rgba(234,182,72,0.3); position: relative; z-index: 1;
+    animation: badgeFloat 4s ease-in-out infinite;
   }
   .student-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .student-card-name { font-size: 1.25rem; font-weight: 900; position: relative; z-index: 1; }
@@ -297,6 +309,11 @@
     margin-top: 16px; padding: 11px; border-radius: 12px; border: none; cursor: pointer;
     background: var(--gold); color: white; font-weight: 800; font-size: 0.85rem;
     font-family: 'Tajawal', sans-serif; position: relative; z-index: 1;
+    box-shadow: 0 4px 14px rgba(198,144,31,0.28); animation: goldPulse 4s ease-in-out infinite;
+  }
+  @keyframes goldPulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(198,144,31,0.28); }
+    50% { box-shadow: 0 4px 20px rgba(198,144,31,0.48); }
   }
 
   .recent-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }

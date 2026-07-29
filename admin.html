@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-08">
+<meta name="app-build" content="2026-07-25-09">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -171,6 +171,11 @@
     box-shadow: var(--shadow);
     border: 1px solid rgba(18,53,36,0.05);
     transition: box-shadow 0.2s var(--ease);
+    animation: cardBreathe 7s ease-in-out infinite;
+  }
+  @keyframes cardBreathe {
+    0%, 100% { box-shadow: var(--shadow); }
+    50% { box-shadow: 0 6px 22px rgba(20,61,38,0.12); }
   }
   .card-title {
     font-size: 1rem; font-weight: 800; color: var(--green-deep);
@@ -199,8 +204,16 @@
   }
   .btn-primary { background: linear-gradient(135deg, var(--green-mid), var(--green-deep)); color: white; box-shadow: 0 4px 14px rgba(45,122,79,0.28); }
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(45,122,79,0.35); }
-  .btn-gold { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 4px 14px rgba(200,148,26,0.28); }
+  .btn-gold { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: white; box-shadow: 0 4px 14px rgba(200,148,26,0.28); animation: goldPulse 4s ease-in-out infinite; }
   .btn-gold:hover { transform: translateY(-1px); }
+  @keyframes goldPulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(200,148,26,0.28); }
+    50% { box-shadow: 0 4px 20px rgba(200,148,26,0.48); }
+  }
+  @keyframes logoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
   .btn-sm { padding: 6px 14px; font-size: 0.8rem; width: auto; border-radius: 8px; }
   .btn-danger { background: #b8462f; color: white; }
   .btn:active { transform: scale(0.98); }
@@ -634,7 +647,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:12px">
     <img src="logo.png" alt="شعار المسجد"
-      style="height:54px;width:auto;max-width:40px;object-fit:contain;opacity:0.95;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.18))">
+      style="height:54px;width:auto;max-width:40px;object-fit:contain;opacity:0.95;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.18));animation:logoFloat 4s ease-in-out infinite">
     <div>
       <h1>نظام النقاط</h1>
       <p>النادي الصيفي – مسجد سعيد أرحيل</p>
