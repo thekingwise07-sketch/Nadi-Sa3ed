@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-10">
+<meta name="app-build" content="2026-07-25-11">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -79,7 +79,7 @@
       var(--cream);
     background-size: 250% 250%, 250% 250%, auto;
     background-repeat: no-repeat;
-    animation: bgDrift 14s ease-in-out infinite;
+    animation: bgDrift var(--bg-speed, 14s) ease-in-out infinite;
     color: var(--green-deep);
     min-height: 100vh;
   }
@@ -1265,6 +1265,19 @@ function renderAccountModalContent(backdrop, name) {
         : `<button class="btn btn-sm" style="background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="toggleMaintenanceMode()">⏸️ إيقاف البث مؤقتاً</button>`
       }
 
+      <div class="section-label" style="margin-top:16px">⚡ سرعة الخلفية المتحركة</div>
+      <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        بتتحكم بسرعة حركة التوهج بالخلفية عند كل المشرفين وعند الطلاب مع بعض (كل ما الرقم أقل، كل ما الحركة أسرع).
+      </p>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:0.75rem;color:var(--gray-text)">بطيئة</span>
+        <input type="range" id="acc-bg-speed" min="4" max="40" step="1" value="${state.bgSpeed || 14}"
+          oninput="document.getElementById('acc-bg-speed-val').textContent = this.value + 'ث'; applyBgSpeed(this.value)"
+          onchange="setBgSpeed(this.value)" style="flex:1">
+        <span style="font-size:0.75rem;color:var(--gray-text)">سريعة</span>
+      </div>
+      <div style="text-align:center;font-weight:800;color:var(--green-deep);margin-bottom:10px" id="acc-bg-speed-val">${state.bgSpeed || 14}ث</div>
+
       <div class="cmodal-btns" style="margin-top:18px">
         <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
       </div>
@@ -1279,6 +1292,21 @@ function toggleMaintenanceMode() {
   save(); render();
   toast(state.maintenanceMode ? '⏸️ تم إيقاف البث عن صفحة الطلاب' : '▶️ رجع البث لصفحة الطلاب');
   openAccountModal();
+}
+
+// معاينة فورية محلية لسرعة حركة الخلفية (بدون حفظ) — بتتحرك أثناء سحب الشريط مباشرة
+function applyBgSpeed(seconds) {
+  document.body.style.setProperty('--bg-speed', (seconds || state.bgSpeed || 14) + 's');
+}
+
+// حفظ سرعة حركة الخلفية ومزامنتها مع كل المشرفين وصفحة الطلاب
+function setBgSpeed(seconds) {
+  const val = parseInt(seconds, 10) || 14;
+  state.bgSpeed = val;
+  applyBgSpeed(val);
+  logEntry('⚡', `تغيير سرعة حركة الخلفية إلى ${val} ثانية`);
+  save();
+  toast(`⚡ تم ضبط سرعة الخلفية على ${val}ث لكل المشرفين والطلاب`);
 }
 
 function closeAccountModal() {
@@ -1343,6 +1371,7 @@ function ensureFields() {
   if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
   if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
   if (state.maintenanceMode === undefined) state.maintenanceMode = false; // إيقاف/تشغيل بث صفحة الطلاب
+  if (!state.bgSpeed) state.bgSpeed = 14; // سرعة حركة الخلفية بالثواني (مشتركة بين كل المشرفين والطلاب)
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
@@ -2408,6 +2437,7 @@ function applyPublicSnapshotToState(snapshot) {
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
     rulesConfig: src.rulesConfig || null,
     maintenanceMode: !!src.maintenanceMode,
+    bgSpeed: src.bgSpeed || 14,
     league: {
       matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
@@ -3072,6 +3102,7 @@ function toast(msg) {
 
 // ===================== RENDER =====================
 function render() {
+  applyBgSpeed(state.bgSpeed);
   renderSelects();
   updateStreakCheckboxVisibility();
   updateBulkStreakCheckboxVisibility();
