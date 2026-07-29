@@ -531,6 +531,7 @@
   .cmodal-backdrop.show { opacity: 1; pointer-events: auto; }
   .cmodal-box {
     background: var(--cream); border-radius: 18px; max-width: 340px; width: 100%;
+    max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 22px 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     transform: translateY(14px) scale(0.96); transition: transform 0.18s;
     text-align: center;
@@ -1391,7 +1392,7 @@ async function resetAllAdminPasswords() {
   // تسجيل خروج فوري من هالجهاز كمان عشان الكل يسجّل دخول من جديد بكلمة السر الجديدة
   sessionStorage.removeItem('nadyAdmin');
 
-  await customAlert(`✅ تم تغيير كل كلمات السر. انسخها وابعتها لكل مشرف بشكل خاص (وحذفها بعدين):\n\n${summaryLines.join('\n')}`, '📋');
+  await showPasswordResetSummary(summaryLines);
   location.reload();
 }
 
@@ -1876,6 +1877,59 @@ function customAlert(message, icon = 'ℹ️') {
   return customChoice(message, icon, [
     { label: 'تم', value: true, cls: 'cmodal-btn-secondary' }
   ]);
+}
+
+// نافذة خاصة بعرض كلمات السر بعد "الطوارئ الأمنية" — فيها زر نسخ الكل عشان ما يحتاج رائد ينسخهم واحد واحد
+function showPasswordResetSummary(summaryLines) {
+  return new Promise(resolve => {
+    let backdrop = document.getElementById('cmodal-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'cmodal-backdrop';
+      backdrop.className = 'cmodal-backdrop';
+      document.body.appendChild(backdrop);
+    }
+    const fullText = summaryLines.join('\n');
+    const finish = () => {
+      backdrop.classList.remove('show');
+      setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+      resolve(true);
+    };
+    // ما بنسكر بالضغط برا الصندوق هالمرة، حتى ما تنضاع كلمات السر بضغطة غلط
+    backdrop.onclick = null;
+    backdrop.innerHTML = `
+      <div class="cmodal-box" style="text-align:right">
+        <div class="cmodal-icon" style="text-align:center">📋</div>
+        <div class="cmodal-msg" style="text-align:center">✅ تم تغيير كل كلمات السر. انسخها وابعتها لكل مشرف بشكل خاص (وحذفها بعدين):</div>
+        <div id="pw-summary-text" style="background:#f3ede0;border-radius:10px;padding:12px;font-family:monospace;font-size:0.85rem;line-height:1.9;white-space:pre-line;text-align:left;direction:ltr;margin-bottom:14px;user-select:all">${fullText}</div>
+        <div class="cmodal-btns">
+          <button class="cmodal-btn cmodal-btn-secondary" id="pw-copy-btn">📋 نسخ الكل</button>
+          <button class="cmodal-btn cmodal-btn-danger" id="pw-done-btn">تم، نسختها</button>
+        </div>
+      </div>`;
+    document.getElementById('pw-copy-btn').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(fullText);
+        toast('✅ تم نسخ كل كلمات السر');
+      } catch (e) {
+        // احتياط للمتصفحات اللي ما بتدعم navigator.clipboard أو رفضت الإذن
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = fullText;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          toast('✅ تم نسخ كل كلمات السر');
+        } catch (e2) {
+          toast('⚠️ ما قدرنا ننسخ تلقائياً — انسخها يدوياً من الصندوق فوق');
+        }
+      }
+    };
+    document.getElementById('pw-done-btn').onclick = finish;
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+  });
 }
 
 
