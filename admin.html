@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-04">
+<meta name="app-build" content="2026-07-25-08">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -77,8 +77,15 @@
       radial-gradient(1200px 500px at 100% -10%, rgba(212,160,23,0.10), transparent 60%),
       radial-gradient(900px 500px at -10% 0%, rgba(45,122,79,0.10), transparent 55%),
       var(--cream);
+    background-size: 180% 180%, 180% 180%, auto;
+    background-repeat: no-repeat;
+    animation: bgDrift 26s ease-in-out infinite alternate;
     color: var(--green-deep);
     min-height: 100vh;
+  }
+  @keyframes bgDrift {
+    0%   { background-position: 0% 0%, 100% 100%, 0 0; }
+    100% { background-position: 18% 14%, 82% 86%, 0 0; }
   }
 
   /* === HEADER === */
@@ -928,6 +935,7 @@
       <button class="btn btn-sm" style="background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid)" onclick="resetLogFilters()">↺ إعادة ضبط الفلترة</button>
       <button class="btn btn-sm btn-danger" onclick="clearLog()">🗑️ مسح السجل</button>
     </div>
+    <button class="btn btn-sm" style="width:100%;background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid);margin-bottom:12px" onclick="archiveCurrentLogManually()">📦 أرشفة السجل الحالي الآن</button>
     <div id="log-backups-list"></div>
     <div id="log-category-summary"></div>
     <div id="log-list"></div>
@@ -2890,7 +2898,32 @@ function logEntry(icon, text, meta, privateCorrection) {
   const isoDate = now.toISOString().slice(0,10); // YYYY-MM-DD لاستخدامه بالفلترة
   const adminName = sessionStorage.getItem('nadyAdmin') || '';
   state.log.unshift({ id: Date.now() + Math.random(), icon, text, time, date: now.getTime(), isoDate, meta: meta || null, adminName, privateCorrection: !!privateCorrection });
-  if (state.log.length > 200) state.log.pop();
+  // السجل يضل موجود بالكامل ولا يُحذف تلقائياً أبداً — الحذف يصير فقط يدوياً من رائد
+}
+
+// نقل السجل الحالي بالكامل إلى قائمة "الأرشيف/النسخ المحفوظة" (state.logBackups) وتفريغ السجل النشط
+// السطر ما بينمسح أبداً — بس بينتقل لقائمة ثانية بيقدر رائد يستعرضها ويسترجعها متى ما بدّه
+function archiveLogBatch(label) {
+  if (!state.log.length) return false;
+  if (!state.logBackups) state.logBackups = [];
+  state.logBackups.unshift({
+    id: Date.now(),
+    label,
+    log: JSON.parse(JSON.stringify(state.log))
+  });
+  if (state.logBackups.length > 60) state.logBackups.pop(); // سنة كاملة تقريباً كحد أقصى لتفادي تضخم التخزين
+  state.log = [];
+  return true;
+}
+
+// أرشفة يدوية للسجل الحالي بأي وقت (مفيدة لأرشفة السجل المتراكم القديم قبل ما يبلش نظام الأرشفة الأسبوعية)
+async function archiveCurrentLogManually() {
+  if (!state.log.length) { toast('السجل فاضي أصلاً، ما في شي للأرشفة'); return; }
+  if (!await customConfirm(`أرشفة السجل الحالي (${state.log.length} سطر) الآن؟\n\nرح ينتقل السجل الحالي بالكامل لقائمة "🗄️ الأرشيف" تحت (تقدر تستعرضه وترجعه أي وقت)، وبيبلش سجل جديد فاضي من هلأ.`, '📦')) return;
+  const label = `أرشفة يدوية — ${new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'short', year:'numeric' })} ${new Date().toLocaleTimeString('ar', { hour:'2-digit', minute:'2-digit' })}`;
+  archiveLogBatch(label);
+  save(); render();
+  toast('✅ تم أرشفة السجل الحالي، وبلش سجل جديد فاضي');
 }
 
 async function clearLog() {
@@ -2898,39 +2931,31 @@ async function clearLog() {
   if (!await customConfirm('مسح كل السجل؟\n\nرح تنحفظ نسخة احتياطية تلقائية قبل الحذف، وبتقدر تسترجعها من "النسخ الاحتياطية" تحت لو احتجت.', '🗑️')) return;
 
   // نسخة احتياطية تلقائية قبل أي عملية مسح خطيرة للسجل — حماية من الحذف بالغلط
-  if (!state.logBackups) state.logBackups = [];
-  state.logBackups.unshift({
-    id: Date.now(),
-    label: `نسخة قبل مسح السجل — ${new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'short', year:'numeric' })} ${new Date().toLocaleTimeString('ar', { hour:'2-digit', minute:'2-digit' })}`,
-    log: JSON.parse(JSON.stringify(state.log))
-  });
-  if (state.logBackups.length > 10) state.logBackups.pop(); // نحتفظ بآخر 10 نسخ بس لتفادي تضخم البيانات
-
-  state.log = [];
+  archiveLogBatch(`نسخة قبل مسح السجل — ${new Date().toLocaleDateString('ar-EG', { day:'numeric', month:'short', year:'numeric' })} ${new Date().toLocaleTimeString('ar', { hour:'2-digit', minute:'2-digit' })}`);
   save(); render();
   toast('✅ تم مسح السجل (نسخة احتياطية محفوظة تحت)');
 }
 
 // استرجاع نسخة احتياطية قديمة من السجل — رائد فقط
 async function restoreLogBackup(backupId) {
-  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ الاسترجاع متاح لرائد فقط'); return; }
   const backup = (state.logBackups || []).find(b => b.id === backupId);
   if (!backup) return;
-  if (!await customConfirm(`استرجاع "${backup.label}"؟\n\nرح يستبدل السجل الحالي (${state.log.length} سطر) بالنسخة المحفوظة (${backup.log.length} سطر). أي سطر تسجّل بعد وقت هاي النسخة رح يضيع.`, '↩️')) return;
-  state.log = JSON.parse(JSON.stringify(backup.log));
+  if (!await customConfirm(`إرجاع "${backup.label}" (${backup.log.length} سطر) للسجل النشط؟\n\nرح تنضاف هاي السطور فوق السجل الحالي (${state.log.length} سطر) بدون ما تحذف أي شي موجود حالياً، وبتضل نسخة الأرشيف موجودة تحت كمان لو احتجتها مرة ثانية.`, '↩️')) return;
+  const existingIds = new Set(state.log.map(l => l.id));
+  const merged = state.log.concat(backup.log.filter(l => !existingIds.has(l.id)));
+  merged.sort((a, b) => (b.date || 0) - (a.date || 0));
+  state.log = merged;
   save(); render();
-  toast('✅ تم استرجاع السجل');
+  toast('✅ تم إرجاع سطور الأرشيف للسجل النشط');
 }
 
 function renderLogBackups() {
   const el = document.getElementById('log-backups-list');
   if (!el) return;
-  const isRaed = sessionStorage.getItem('nadyAdmin') === 'رائد';
-  if (!isRaed) { el.innerHTML = ''; return; }
   const backups = state.logBackups || [];
-  if (!backups.length) { el.innerHTML = '<p style="font-size:0.76rem;color:var(--gray-text);margin-top:6px">لا توجد نسخ احتياطية بعد — بتتكوّن تلقائياً كل ما تمسح السجل بالكامل.</p>'; return; }
+  if (!backups.length) { el.innerHTML = '<p style="font-size:0.76rem;color:var(--gray-text);margin-top:6px">لا يوجد أرشيف بعد — بيتكوّن تلقائياً كل ما تبدأ أسبوع جديد، أو يدوياً من زر "📦 أرشفة السجل الحالي الآن" فوق.</p>'; return; }
   el.innerHTML = `
-    <div class="section-label" style="margin-top:10px">🗄️ نسخ احتياطية للسجل (رائد فقط)</div>
+    <div class="section-label" style="margin-top:10px">🗄️ أرشيف السجل</div>
     ${backups.map(b => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--gray-soft);border-radius:10px;padding:10px 12px;margin-bottom:8px">
         <div>
@@ -2973,9 +2998,12 @@ async function startNewWeek() {
   state.teams.forEach(t => t.weekStartPoints = t.points);
   state.currentWeekStart = startOfWeekISO(new Date());
 
+  // أرشفة سجل الأسبوع المنتهي بالكامل (بدون فقد أي سطر) قبل ما يبلش سجل الأسبوع الجديد فاضي
+  archiveLogBatch(`أرشيف سجل — ${snapshot.label}`);
+
   logEntry('📅', `بدأ أسبوع جديد: ${snapshot.label}`);
   save(); render();
-  toast('✅ بدأ الأسبوع الجديد، والنقاط الكلية محفوظة بالكامل');
+  toast('✅ بدأ الأسبوع الجديد، والنقاط الكلية محفوظة بالكامل، والسجل السابق تأرشف');
 }
 
 // تصفير عداد الحضور: يحوّل كل سجلات "حضور وانتظام" بالسجل إلى فئة "مشاركة في درس أو نشاط"
