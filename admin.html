@@ -92,6 +92,20 @@
     100% { background-position: 0% 0%, 100% 100%, 0 0; }
   }
 
+  /* === لهب السترايك النشط (حضور متتالي) — نبض وتوهج خفيف يحاكي اهتزاز النار === */
+  .fire-flicker {
+    display: inline-block;
+    animation: fireFlicker 1.1s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+  @keyframes fireFlicker {
+    0%, 100% { transform: scale(1) rotate(0deg);   filter: drop-shadow(0 0 2px rgba(234,110,20,0.4))  brightness(1); }
+    20%      { transform: scale(1.08) rotate(-3deg); filter: drop-shadow(0 0 5px rgba(234,110,20,0.65)) brightness(1.12); }
+    45%      { transform: scale(0.95) rotate(2deg);  filter: drop-shadow(0 0 3px rgba(234,110,20,0.5))  brightness(1.05); }
+    70%      { transform: scale(1.1) rotate(-1deg);  filter: drop-shadow(0 0 6px rgba(234,110,20,0.7))  brightness(1.15); }
+    85%      { transform: scale(0.97) rotate(1deg);  filter: drop-shadow(0 0 3px rgba(234,110,20,0.45)) brightness(1.03); }
+  }
+
   /* === HEADER === */
   header {
     background: linear-gradient(150deg, var(--green-deep) 0%, var(--green-mid) 100%);
@@ -568,11 +582,17 @@
   }
   #login-screen::before {
     /* بلاط هندسي ثماني النجوم — إشارة لزخرفة المساجد التقليدية، بشفافية خفيفة جداً */
+    /* بتتحرك بشكل مستمر جهة الشمال (background-size = عرض القطعة نفسها، فالحركة بتلف بسلاسة بدون قطع) */
     content: '';
-    position: absolute; inset: 0;
+    position: absolute; inset: -64px 0 0 -64px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23eab648' stroke-opacity='0.09' stroke-width='1'%3E%3Crect x='12' y='12' width='40' height='40'/%3E%3Crect x='12' y='12' width='40' height='40' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 64px 64px;
+    animation: tileDriftLeft 9s linear infinite;
     pointer-events: none;
+  }
+  @keyframes tileDriftLeft {
+    from { background-position: 0 0; }
+    to   { background-position: -64px 0; }
   }
   #login-screen::after {
     /* توهج فانوس خافت أعلى الشاشة */
@@ -2220,7 +2240,7 @@ function openStudentModal(studentId) {
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1;position:relative;${streak >= 2 ? 'background:linear-gradient(135deg,#fbeedc,#ffe0b2);border:1px solid #eda355' : ''}">
           <button onclick="editStreakManually(${s.id})" title="تعديل السترايك يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
-          <div class="pmodal-stat-num">${streak >= 2 ? '🔥' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
+          <div class="pmodal-stat-num">${streak >= 2 ? '<span class="fire-flicker">🔥</span>' : '〰️'} ${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية</div>
           <div class="pmodal-stat-lbl">${streak >= 2 ? `سترايك نشط! حضوره القادم = ${suggestedAttendancePoints(s.id)} نقطة` : 'سترايك الحضور المتتالي'}</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1">
@@ -3210,8 +3230,21 @@ function renderLogBackups() {
           <div style="font-weight:700;font-size:0.8rem">${b.label}</div>
           <div style="font-size:0.72rem;color:var(--gray-text)">${b.log.length} سطر محفوظ</div>
         </div>
-        <button class="btn btn-sm" style="width:auto;flex-shrink:0;background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)" onclick="restoreLogBackup(${b.id})">↩️ استرجاع</button>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-sm" style="width:auto;background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)" onclick="restoreLogBackup(${b.id})">↩️ استرجاع</button>
+          <button class="btn btn-sm btn-danger" style="width:auto" onclick="deleteLogBackup(${b.id})">🗑️ حذف</button>
+        </div>
       </div>`).join('')}`;
+}
+
+// حذف نسخة أرشيف نهائياً من قائمة النسخ الاحتياطية (لا يؤثر على السجل النشط الحالي إطلاقاً)
+async function deleteLogBackup(backupId) {
+  const backup = (state.logBackups || []).find(b => b.id === backupId);
+  if (!backup) return;
+  if (!await customConfirm(`حذف نسخة "${backup.label}" (${backup.log.length} سطر) نهائياً من الأرشيف؟\n\nهاد الحذف نهائي ومش رح تقدر تسترجع هاي النسخة بعدين. السجل النشط الحالي ما رح يتأثر إطلاقاً.`, '🗑️')) return;
+  state.logBackups = (state.logBackups || []).filter(b => b.id !== backupId);
+  save(); render();
+  toast('🗑️ تم حذف نسخة الأرشيف نهائياً');
 }
 
 // ===================== الأسابيع (أرشيف بدون فقد بيانات) =====================
