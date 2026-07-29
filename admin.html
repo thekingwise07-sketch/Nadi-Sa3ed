@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-12">
+<meta name="app-build" content="2026-07-25-13">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -1156,8 +1156,20 @@ function renderBiometricLoginButtons() {
     </div>`;
 }
 
+// يقرأ معرّف البصمة المخزّن، ويدعم كمان الصيغة القديمة (سلسلة نصية مباشرة بدون تاريخ تسجيل)
+function getBiometricCredId(name) {
+  const raw = localStorage.getItem('nadyBiometric_' + name);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.credId ? parsed.credId : null;
+  } catch (e) {
+    return raw; // صيغة قديمة: سلسلة نصية مباشرة (بدون تاريخ) — تُعتبر "قبل أي طارئ أمني" تلقائياً
+  }
+}
+
 async function loginWithBiometric(name) {
-  const credId = localStorage.getItem('nadyBiometric_' + name);
+  const credId = getBiometricCredId(name);
   if (!credId) return;
   if (!window.PublicKeyCredential) { toast('⚠️ هذا المتصفح ما بيدعم الفتح السريع'); return; }
   try {
@@ -1199,13 +1211,34 @@ async function setupBiometric() {
       }
     });
     const credId = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
-    localStorage.setItem('nadyBiometric_' + name, credId);
+    // نخزن مع تاريخ التفعيل حتى نقدر نلغي التسجيلات القديمة تلقائياً بعد أي "طوارئ أمنية"
+    localStorage.setItem('nadyBiometric_' + name, JSON.stringify({ credId, registeredAt: Date.now() }));
     toast('✅ تم تفعيل الفتح السريع لهذا الجهاز');
     openAccountModal();
   } catch (e) {
     console.log('biometric setup error', e);
     toast('⚠️ تعذّر تفعيل الفتح السريع');
   }
+}
+
+// يمسح تسجيلات البصمة القديمة على هذا الجهاز إذا صار "طارئ أمني" بعد تفعيلها
+// (state.biometricResetAt يتزامن عبر Firebase، فهاي الدالة بتشتغل تلقائياً على كل جهاز عند وصول التحديث)
+function purgeStaleBiometrics() {
+  const resetAt = state.biometricResetAt || 0;
+  if (!resetAt) return;
+  Object.keys(DEFAULT_ADMINS).forEach(n => {
+    const raw = localStorage.getItem('nadyBiometric_' + n);
+    if (!raw) return;
+    let registeredAt = 0;
+    try {
+      const parsed = JSON.parse(raw);
+      registeredAt = parsed.registeredAt || 0;
+    } catch (e) {
+      registeredAt = 0; // صيغة قديمة بدون تاريخ = تعتبر أقدم من أي طارئ أمني
+    }
+    if (registeredAt < resetAt) localStorage.removeItem('nadyBiometric_' + n);
+  });
+  renderBiometricLoginButtons();
 }
 
 function removeBiometric() {
@@ -1281,6 +1314,14 @@ function renderAccountModalContent(backdrop, name) {
       </div>
       <div style="text-align:center;font-weight:800;color:var(--green-deep);margin-bottom:10px" id="acc-bg-speed-val">${state.bgSpeed || 14}ث</div>
 
+      ${name === 'رائد' ? `
+      <div class="section-label" style="margin-top:18px;color:#b8462f">🚨 طوارئ أمنية (رائد فقط)</div>
+      <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        إذا انسربت أي كلمة سر لحد ما لازم يشوفها (مثل طالب)، اضغط هون: بينولّد كلمات سر جديدة عشوائية لكل المشرفين دفعة وحدة، والقديمة كلها بتصير عديمة الفايدة فوراً.
+      </p>
+      <button class="btn btn-sm btn-danger" style="width:100%;margin-bottom:14px" onclick="resetAllAdminPasswords()">🔐 إعادة تعيين كل كلمات السر الآن</button>
+      ` : ''}
+
       <div class="cmodal-btns" style="margin-top:18px">
         <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
       </div>
@@ -1317,6 +1358,41 @@ function closeAccountModal() {
   if (!backdrop) return;
   backdrop.classList.remove('show');
   setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+}
+
+// إعادة تعيين كل كلمات سر المشرفين دفعة وحدة (رائد فقط) — للطوارئ الأمنية لو انسربت أي كلمة سر
+async function resetAllAdminPasswords() {
+  if (sessionStorage.getItem('nadyAdmin') !== 'رائد') { toast('⚠️ هذا الإجراء متاح لرائد فقط'); return; }
+  if (!await customConfirm('إعادة تعيين كل كلمات سر المشرفين الآن؟\n\nكل كلمات السر الحالية (بما فيها المسرّبة) رح تصير عديمة الفايدة فوراً، وكل تسجيلات الفتح السريع بالبصمة/Face ID رح تُلغى من كل الأجهزة كمان (كل مشرف لازم يفعّلها من جديد لحاله)، ورح تظهرلك كلمات السر الجديدة عشان توزّعها على كل مشرف بأمان (مثلاً برسالة خاصة، مش بمكان عام).', '🔐')) return;
+
+  const names = Object.keys(getAdminPasswords());
+  const genPass = () => {
+    const words = ['نور','فجر','قمر','نجم','ورد','بحر','جبل','ريم'];
+    const w = words[Math.floor(Math.random() * words.length)];
+    const num = Math.floor(1000 + Math.random() * 9000);
+    return `${w}${num}!`;
+  };
+  const newAuth = {};
+  const summaryLines = [];
+  names.forEach(n => {
+    const p = genPass();
+    newAuth[n] = p;
+    summaryLines.push(`${n}: ${p}`);
+  });
+  state.adminAuth = newAuth;
+  // أي بصمة اتسجلت قبل هذه اللحظة تصير ملغاة تلقائياً (على هذا الجهاز فوراً، وعلى باقي الأجهزة بمجرد ما توصلهم المزامنة)
+  state.biometricResetAt = Date.now();
+  logEntry('🔐', 'إعادة تعيين كل كلمات سر المشرفين + إلغاء كل تسجيلات البصمة (طارئ أمني)');
+  save();
+
+  // مسح تسجيلات البصمة على هذا الجهاز فوراً بدل انتظار المزامنة
+  purgeStaleBiometrics();
+
+  // تسجيل خروج فوري من هالجهاز كمان عشان الكل يسجّل دخول من جديد بكلمة السر الجديدة
+  sessionStorage.removeItem('nadyAdmin');
+
+  await customAlert(`✅ تم تغيير كل كلمات السر. انسخها وابعتها لكل مشرف بشكل خاص (وحذفها بعدين):\n\n${summaryLines.join('\n')}`, '📋');
+  location.reload();
 }
 
 function changeMyPassword() {
@@ -1372,6 +1448,7 @@ function ensureFields() {
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
   if (!state.rulesConfig) state.rulesConfig = defaultRulesConfig();
   if (!state.adminAuth) state.adminAuth = { ...DEFAULT_ADMINS }; // كلمات سر المشرفين — قابلة للتغيير ومتزامنة عبر Firebase
+  if (!state.biometricResetAt) state.biometricResetAt = 0; // آخر مرة انعمل فيها "طوارئ أمنية" — يُستخدم لإلغاء تسجيلات البصمة القديمة على كل الأجهزة
   if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
   if (state.maintenanceMode === undefined) state.maintenanceMode = false; // إيقاف/تشغيل بث صفحة الطلاب
   if (!state.bgSpeed) state.bgSpeed = 14; // سرعة حركة الخلفية بالثواني (مشتركة بين كل المشرفين والطلاب)
@@ -1792,6 +1869,12 @@ function customConfirm(message, icon = '⚠️') {
   return customChoice(message, icon, [
     { label: 'تأكيد', value: true, cls: 'cmodal-btn-danger' },
     { label: 'إلغاء', value: false, cls: 'cmodal-btn-secondary' }
+  ]);
+}
+
+function customAlert(message, icon = 'ℹ️') {
+  return customChoice(message, icon, [
+    { label: 'تم', value: true, cls: 'cmodal-btn-secondary' }
   ]);
 }
 
@@ -2445,9 +2528,12 @@ function applyPublicSnapshotToState(snapshot) {
       matches: (src.matches || (src.league && src.league.matches) || []).map(m => ({ ...m })),
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
       tournament: (src.league && src.league.tournament) || null
-    }
+    },
+    adminAuth: src.adminAuth || undefined,
+    biometricResetAt: src.biometricResetAt || 0
   };
   ensureFields();
+  purgeStaleBiometrics(); // إذا مشرف تاني ضغط زر الطوارئ، هاد بيلغي أي بصمة قديمة على هذا الجهاز فور وصول التحديث
 }
 
 // إخفاء كل عناصر التعديل/الإضافة في وضع العرض العام، وإبقاء الرئيسية + الطلاب + الفرق كعرض فقط
@@ -4389,6 +4475,7 @@ async function startApp() {
   } else {
     // الوضع العادي (المشرف)
     ensureFields();
+    purgeStaleBiometrics(); // يلغي أي تسجيل بصمة على هذا الجهاز صار قبل آخر "طوارئ أمنية" مسجّلة بالبيانات المحلية
     const matchDateEl = document.getElementById('match-date');
     if (matchDateEl) matchDateEl.value = new Date().toISOString().slice(0,10);
     render();
