@@ -645,6 +645,9 @@
     </div>
     <button class="login-btn" onclick="doLogin()">🔐 دخول المشرفين</button>
     <div class="login-error" id="login-error">اسم المشرف أو كلمة السر غير صحيحة</div>
+    <div style="text-align:center;margin-top:14px">
+      <a href="javascript:void(0)" onclick="openPasswordRecovery()" style="font-size:0.8rem;color:var(--gray-text);text-decoration:underline">نسيت كلمة السر؟</a>
+    </div>
 
   </div>
 </div>
@@ -1097,6 +1100,10 @@ const DEFAULT_ADMINS = {
   'عبدالرحمن':   'AbdulR@2026'
 };
 
+// رمز استرجاع سري منفصل تماماً عن كلمات سر المشرفين — يُستخدم بس لعرض كلمات السر الحالية عند نسيانها.
+// غيّره لأي رمز تانية تحبه (سطر واحد هون)، وما تشاركه إلا مع المشرفين الموثوقين.
+const PASSWORD_RECOVERY_CODE = 'Nady-Rescue-9247';
+
 // كلمات السر الفعلية الحالية — تُقرأ من state (المتزامن عبر Firebase) لو موجودة، وإلا من الافتراضي
 function getAdminPasswords() {
   return (typeof state !== 'undefined' && state && state.adminAuth) ? state.adminAuth : DEFAULT_ADMINS;
@@ -1267,6 +1274,8 @@ function openAccountModal() {
 }
 
 function renderAccountModalContent(backdrop, name) {
+  // رقم فريد لهذه النافذة — يمنع نافذة سابقة (لسا بطور الإغلاق/التلاشي) من مسح محتوى هذه النافذة الجديدة
+  backdrop._token = (backdrop._token || 0) + 1;
   const hasBiometric = !!localStorage.getItem('nadyBiometric_' + name);
   const biometricSupported = !!window.PublicKeyCredential;
   backdrop.innerHTML = `
@@ -1357,8 +1366,9 @@ function setBgSpeed(seconds) {
 function closeAccountModal() {
   const backdrop = document.getElementById('cmodal-backdrop');
   if (!backdrop) return;
+  const myToken = backdrop._token;
   backdrop.classList.remove('show');
-  setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+  setTimeout(() => { if (backdrop._token === myToken) backdrop.innerHTML = ''; }, 180);
 }
 
 // إعادة تعيين كل كلمات سر المشرفين دفعة وحدة (رائد فقط) — للطوارئ الأمنية لو انسربت أي كلمة سر
@@ -1847,7 +1857,7 @@ function customChoice(message, icon, buttons) {
     }
     const finish = (val) => {
       backdrop.classList.remove('show');
-      setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+      setTimeout(() => { if (backdrop._token === myToken) backdrop.innerHTML = ''; }, 180);
       resolve(val);
     };
     backdrop.onclick = (e) => { if (e.target === backdrop) finish(false); };
@@ -1859,6 +1869,8 @@ function customChoice(message, icon, buttons) {
           ${buttons.map((b, i) => `<button class="cmodal-btn ${b.cls}" data-idx="${i}">${b.label}</button>`).join('')}
         </div>
       </div>`;
+    // رقم فريد لهذه النافذة — يمنع نافذة سابقة (لسا بطور التلاشي) من مسح محتوى نافذة جديدة فُتحت فوراً بعدها
+    const myToken = (backdrop._token = (backdrop._token || 0) + 1);
     backdrop.querySelectorAll('.cmodal-btn').forEach((btn, i) => {
       btn.onclick = () => finish(buttons[i].value);
     });
@@ -1879,8 +1891,55 @@ function customAlert(message, icon = 'ℹ️') {
   ]);
 }
 
-// نافذة خاصة بعرض كلمات السر بعد "الطوارئ الأمنية" — فيها زر نسخ الكل عشان ما يحتاج رائد ينسخهم واحد واحد
-function showPasswordResetSummary(summaryLines) {
+// نافذة استرجاع كلمة السر (متاحة من شاشة الدخول قبل تسجيل الدخول أصلاً) — بتطلب الرمز السري المنفصل قبل ما تعرض أي شي
+function openPasswordRecovery() {
+  let backdrop = document.getElementById('cmodal-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'cmodal-backdrop';
+    backdrop.className = 'cmodal-backdrop';
+    document.body.appendChild(backdrop);
+  }
+  backdrop.onclick = (e) => { if (e.target === backdrop) closePasswordRecovery(); };
+  backdrop.innerHTML = `
+    <div class="cmodal-box">
+      <div class="cmodal-icon">🔑</div>
+      <div class="cmodal-msg">نسيت كلمة السر؟<br>اكتب رمز الاسترجاع السري لعرض كلمات السر الحالية لكل المشرفين.</div>
+      <input type="password" id="pw-recovery-code" placeholder="رمز الاسترجاع" autocomplete="off"
+        onkeydown="if(event.key==='Enter') submitPasswordRecovery()" style="text-align:center;margin-bottom:6px">
+      <div class="cmodal-btns" style="margin-top:12px">
+        <button class="cmodal-btn cmodal-btn-danger" onclick="submitPasswordRecovery()">عرض كلمات السر</button>
+        <button class="cmodal-btn cmodal-btn-secondary" onclick="closePasswordRecovery()">إلغاء</button>
+      </div>
+    </div>`;
+  // رقم فريد لهذه النافذة — نفس آلية الحماية من التعارض المستخدمة بباقي النوافذ
+  backdrop._token = (backdrop._token || 0) + 1;
+  requestAnimationFrame(() => backdrop.classList.add('show'));
+  setTimeout(() => document.getElementById('pw-recovery-code')?.focus(), 200);
+}
+
+function closePasswordRecovery() {
+  const backdrop = document.getElementById('cmodal-backdrop');
+  if (!backdrop) return;
+  const myToken = backdrop._token;
+  backdrop.classList.remove('show');
+  setTimeout(() => { if (backdrop._token === myToken) backdrop.innerHTML = ''; }, 180);
+}
+
+function submitPasswordRecovery() {
+  const inputEl = document.getElementById('pw-recovery-code');
+  const code = inputEl ? inputEl.value.trim() : '';
+  if (code !== PASSWORD_RECOVERY_CODE) {
+    toast('⚠️ الرمز غير صحيح');
+    return;
+  }
+  const lines = Object.entries(getAdminPasswords()).map(([n, p]) => `${n}: ${p}`);
+  showPasswordResetSummary(lines, '🔑 كلمات السر الحالية لكل مشرف:');
+}
+
+// نافذة عرض كلمات السر — تُستخدم بعد "الطوارئ الأمنية" (كلمات جديدة) وكمان لعرض الكلمات الحالية وقت ما بدك، فيها زر نسخ الكل
+function showPasswordResetSummary(summaryLines, message) {
+  message = message || '✅ تم تغيير كل كلمات السر. انسخها وابعتها لكل مشرف بشكل خاص (وحذفها بعدين):';
   return new Promise(resolve => {
     let backdrop = document.getElementById('cmodal-backdrop');
     if (!backdrop) {
@@ -1892,7 +1951,7 @@ function showPasswordResetSummary(summaryLines) {
     const fullText = summaryLines.join('\n');
     const finish = () => {
       backdrop.classList.remove('show');
-      setTimeout(() => { backdrop.innerHTML = ''; }, 180);
+      setTimeout(() => { if (backdrop._token === myToken) backdrop.innerHTML = ''; }, 180);
       resolve(true);
     };
     // ما بنسكر بالضغط برا الصندوق هالمرة، حتى ما تنضاع كلمات السر بضغطة غلط
@@ -1900,13 +1959,15 @@ function showPasswordResetSummary(summaryLines) {
     backdrop.innerHTML = `
       <div class="cmodal-box" style="text-align:right">
         <div class="cmodal-icon" style="text-align:center">📋</div>
-        <div class="cmodal-msg" style="text-align:center">✅ تم تغيير كل كلمات السر. انسخها وابعتها لكل مشرف بشكل خاص (وحذفها بعدين):</div>
+        <div class="cmodal-msg" style="text-align:center">${message}</div>
         <div id="pw-summary-text" style="background:#f3ede0;border-radius:10px;padding:12px;font-family:monospace;font-size:0.85rem;line-height:1.9;white-space:pre-line;text-align:left;direction:ltr;margin-bottom:14px;user-select:all">${fullText}</div>
         <div class="cmodal-btns">
           <button class="cmodal-btn cmodal-btn-secondary" id="pw-copy-btn">📋 نسخ الكل</button>
           <button class="cmodal-btn cmodal-btn-danger" id="pw-done-btn">تم، نسختها</button>
         </div>
       </div>`;
+    // رقم فريد لهذه النافذة — يمنع نافذة التأكيد السابقة (لسا بطور التلاشي) من مسح كلمات السر هذه فور ظهورها
+    const myToken = (backdrop._token = (backdrop._token || 0) + 1);
     document.getElementById('pw-copy-btn').onclick = async () => {
       try {
         await navigator.clipboard.writeText(fullText);
