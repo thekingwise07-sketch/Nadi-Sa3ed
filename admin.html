@@ -30,7 +30,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المشرفين – النادي الصيفي</title>
-<meta name="app-build" content="2026-07-25-11">
+<meta name="app-build" content="2026-07-25-12">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -79,7 +79,10 @@
       var(--cream);
     background-size: 250% 250%, 250% 250%, auto;
     background-repeat: no-repeat;
-    animation: bgDrift var(--bg-speed, 14s) ease-in-out infinite;
+    animation-name: bgDrift;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-duration: var(--bg-speed, 14s);
     color: var(--green-deep);
     min-height: 100vh;
   }
