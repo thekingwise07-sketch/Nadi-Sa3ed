@@ -92,7 +92,15 @@
     100% { background-position: 0% 0%, 100% 100%, 0 0; }
   }
 
-  /* === لهب السترايك النشط (حضور متتالي) — نبض وتوهج خفيف يحاكي اهتزاز النار === */
+  /* === توهج أيقونة صلاة الفجر — نبضة ضوء هادئة تحاكي قبة مضيئة ليلاً === */
+  .fajr-glow {
+    display: inline-block;
+    animation: fajrGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes fajrGlow {
+    0%, 100% { filter: drop-shadow(0 0 1px rgba(0,105,92,0.35)); }
+    50%      { filter: drop-shadow(0 0 6px rgba(0,105,92,0.75)) brightness(1.15); }
+  }
   .fire-flicker {
     display: inline-block;
     animation: fireFlicker 1.1s ease-in-out infinite;
@@ -635,6 +643,17 @@
     color: white; font-family: 'Tajawal', sans-serif;
     font-size: 1rem; font-weight: 800; cursor: pointer;
     margin-top: 6px; transition: opacity 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .login-btn::after {
+    content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: btnShimmer 3.4s ease-in-out infinite;
+  }
+  @keyframes btnShimmer {
+    0%   { left: -60%; }
+    45%  { left: 130%; }
+    100% { left: 130%; }
   }
   .login-btn:hover { opacity: 0.9; }
   .login-error {
@@ -1707,10 +1726,24 @@ function renderRulesEditForm() {
 
 // ===================== اكتشاف التغييرات بوضع العرض الحي =====================
 // يقارن لقطة Firebase القديمة بالجديدة لتفعيل أنيميشن النقاط وتأثير الاحتفال
+// يعدّ الرقم تصاعدياً/تنازلياً من قيمة لقيمة بدل ما يقفز فجأة (Ease-out)
+function animateNumberEl(el, from, to, duration = 700) {
+  const start = performance.now();
+  const diff = to - from;
+  function step(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + diff * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+
 function detectLiveChanges(prev, curr) {
   if (!prev) return; // أول تحميل — بدون أنيميشن
 
-  // 1) أنيميشن نبضة على كل رقم نقاط تغيّر (طالب أو فريق)
+  // 1) أنيميشن نبضة + عدّ تصاعدي/تنازلي على كل رقم نقاط تغيّر (طالب أو فريق)
   document.querySelectorAll('.pts-val[data-kind]').forEach(el => {
     const kind = el.dataset.kind;
     const id = el.dataset.id;
@@ -1723,6 +1756,7 @@ function detectLiveChanges(prev, curr) {
     el.classList.remove('pts-flash-up', 'pts-flash-down');
     void el.offsetWidth; // إعادة تشغيل الأنيميشن
     el.classList.add(newVal > oldVal ? 'pts-flash-up' : 'pts-flash-down');
+    animateNumberEl(el, oldVal, newVal);
   });
 
   // 2) كونفيتي عند هدف جديد بالدوري
@@ -2231,7 +2265,7 @@ function openStudentModal(studentId) {
         </div>
         <div class="pmodal-stat" style="position:relative">
           <button onclick="editFajrManually(${s.id})" title="تعديل صلاة الفجر يدوياً" style="position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.1);border-radius:8px;width:26px;height:26px;font-size:0.75rem;cursor:pointer">✏️</button>
-          <div class="pmodal-stat-num">🕌 ${fajr}</div>
+          <div class="pmodal-stat-num"><span class="fajr-glow">🕌</span> ${fajr}</div>
           <div class="pmodal-stat-lbl">صلاة الفجر${s.fajrOverride !== undefined && s.fajrOverride !== null ? ' (معدَّل يدوياً)' : ''}</div>
         </div>
         <div class="pmodal-stat" style="grid-column:1 / -1">

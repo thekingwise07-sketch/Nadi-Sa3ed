@@ -69,6 +69,23 @@
     from { background-position: 0 0; }
     to   { background-position: -64px 0; }
   }
+  /* === توهج بطاقة "طالب/فريق الأسبوع" — نبضة إطار ذهبية تعطي إحساس لحظة تكريم === */
+  .spotlight-card, .week-progress-card {
+    animation: weekGlow 3s ease-in-out infinite;
+  }
+  @keyframes weekGlow {
+    0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.08), 0 0 0 rgba(234,182,72,0); }
+    50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.08), 0 0 16px rgba(234,182,72,0.55); }
+  }
+  /* === توهج أيقونة صلاة الفجر — نبضة ضوء هادئة تحاكي قبة مضيئة ليلاً === */
+  .fajr-glow {
+    display: inline-block;
+    animation: fajrGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes fajrGlow {
+    0%, 100% { filter: drop-shadow(0 0 1px rgba(0,105,92,0.35)); }
+    50%      { filter: drop-shadow(0 0 6px rgba(0,105,92,0.75)) brightness(1.15); }
+  }
   /* === لهب السترايك النشط (حضور متتالي) — نبض وتوهج خفيف يحاكي اهتزاز النار === */
   .fire-flicker {
     display: inline-block;
@@ -1077,10 +1094,19 @@ function setHomeListTab(tab) {
   document.getElementById('home-list-teams').style.display = tab === 'teams' ? 'block' : 'none';
 }
 
+const _heroNumCache = {};
+function setHeroNumber(id, newVal) {
+  const el = document.getElementById(id);
+  const oldVal = _heroNumCache[id];
+  _heroNumCache[id] = newVal;
+  if (oldVal === undefined || oldVal === newVal) { el.textContent = newVal; return; }
+  animateNumberEl(el, oldVal, newVal);
+}
+
 function renderHome() {
-  document.getElementById('h-students').textContent = state.students.length;
-  document.getElementById('h-teams').textContent = state.teams.length;
-  document.getElementById('h-total').textContent = state.students.reduce((s,x) => s + x.points, 0);
+  setHeroNumber('h-students', state.students.length);
+  setHeroNumber('h-teams', state.teams.length);
+  setHeroNumber('h-total', state.students.reduce((s,x) => s + x.points, 0));
 
   // طالب الأسبوع
   const studentsByWeek = state.students.slice().sort((a,b) => weekPointsOf(b) - weekPointsOf(a));
@@ -1226,7 +1252,7 @@ function renderStudentCard(s, sortedAll) {
       <div><div class="student-card-stat-num">${rankEmoji}</div><div class="student-card-stat-lbl">من ${total} طالب</div></div>
       <div><div class="student-card-stat-num">${attendance}</div><div class="student-card-stat-lbl">حضور</div></div>
       <div><div class="student-card-stat-num">⚽ ${goals}</div><div class="student-card-stat-lbl">هدف</div></div>
-      <div><div class="student-card-stat-num">🕌 ${fajr}</div><div class="student-card-stat-lbl">صلاة الفجر</div></div>
+      <div><div class="student-card-stat-num"><span class="fajr-glow">🕌</span> ${fajr}</div><div class="student-card-stat-lbl">صلاة الفجر</div></div>
     </div>
     <div style="margin-top:10px;background:rgba(255,255,255,0.12);border:1px solid rgba(234,182,72,0.4);border-radius:12px;padding:8px 12px;font-size:0.8rem;font-weight:800;color:var(--gold-light);position:relative;z-index:1">📖 ${memorizedSurahs}</div>
     ${badges.length ? `<div class="badges-row">${badges.map(b => `<span class="badge-chip">${b.icon} ${b.label}</span>`).join('')}</div>` : ''}
@@ -1512,6 +1538,20 @@ function flashTicker(msg) {
   ticker.classList.add('refresh-flash');
 }
 
+// يعدّ الرقم تصاعدياً/تنازلياً من قيمة لقيمة بدل ما يقفز فجأة (Ease-out)
+function animateNumberEl(el, from, to, duration = 700) {
+  const start = performance.now();
+  const diff = to - from;
+  function step(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + diff * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+
 function detectLiveChanges(prev, curr) {
   flashTicker(buildTickerMessage(prev, curr));
   if (!prev) return;
@@ -1527,6 +1567,7 @@ function detectLiveChanges(prev, curr) {
     el.classList.remove('pts-flash-up','pts-flash-down');
     void el.offsetWidth;
     el.classList.add(newVal > oldVal ? 'pts-flash-up' : 'pts-flash-down');
+    animateNumberEl(el, oldVal, newVal);
   });
 
   const prevMatches = extractRevealedMatches(prev);
