@@ -569,6 +569,7 @@
     <button class="seg-btn active" onclick="setHomeListTab('fajr')">🕌 الفجر</button>
     <button class="seg-btn" onclick="setHomeListTab('points')">🥇 النقاط</button>
     <button class="seg-btn" onclick="setHomeListTab('teams')">🏆 الفرق</button>
+    <button class="seg-btn" onclick="setHomeListTab('tasks')">📌 المهام</button>
   </div>
 
   <div class="card" id="home-list-fajr">
@@ -585,6 +586,11 @@
   <div class="card" id="home-list-teams" style="display:none">
     <div class="card-title">🏆 ترتيب الفرق</div>
     <div id="home-top-teams"></div>
+  </div>
+
+  <div class="card" id="home-list-tasks" style="display:none">
+    <div class="card-title">📌 مهام النادي</div>
+    <div id="home-tasks-list"></div>
   </div>
 
 </div>
@@ -786,6 +792,10 @@ let state = {
   league: { playerOfWeek: {}, tournament: null }
 };
 let rankMode = 'students';
+let taskCompletions = {}; // { [taskId]: { [nameKey]: {name, at} } } — يوصل من مسار Firebase منفصل
+function taskNameKey(name) {
+  return String(name).trim().replace(/[.#$\[\]\/]/g, '_').replace(/\s+/g, ' ').slice(0, 100);
+}
 let rankTeamFilter = null; // null = عرض كل الطلاب، أو تحديد فريق معيّن لعرض ترتيبه فقط
 let leagueTab = 'played';
 let scorersExpanded = false;
@@ -800,6 +810,7 @@ function startOfWeekISO(d) {
 }
 
 function ensureFields() {
+  if (!state.tasks) state.tasks = [];
   if (!state.weeks) state.weeks = [];
   if (!state.currentWeekStart) state.currentWeekStart = startOfWeekISO(new Date());
   if (!state.league) state.league = { playerOfWeek: {}, tournament: null };
@@ -825,6 +836,7 @@ function applySnapshotToState(src) {
     currentWeekStart: src.currentWeekStart || startOfWeekISO(new Date()),
     maintenanceMode: !!src.maintenanceMode,
     bgSpeed: src.bgSpeed || 14,
+    tasks: src.tasks || [],
     league: {
       playerOfWeek: src.playerOfWeek || (src.league && src.league.playerOfWeek) || {},
       tournament: (src.league && src.league.tournament)
@@ -1087,11 +1099,12 @@ function renderFajrLeaders() {
 // ===================== RENDER: HOME =====================
 function setHomeListTab(tab) {
   document.querySelectorAll('#home-lists-tabs .seg-btn').forEach((b, i) => {
-    b.classList.toggle('active', (tab === 'fajr' && i === 0) || (tab === 'points' && i === 1) || (tab === 'teams' && i === 2));
+    b.classList.toggle('active', (tab === 'fajr' && i === 0) || (tab === 'points' && i === 1) || (tab === 'teams' && i === 2) || (tab === 'tasks' && i === 3));
   });
   document.getElementById('home-list-fajr').style.display = tab === 'fajr' ? 'block' : 'none';
   document.getElementById('home-list-points').style.display = tab === 'points' ? 'block' : 'none';
   document.getElementById('home-list-teams').style.display = tab === 'teams' ? 'block' : 'none';
+  document.getElementById('home-list-tasks').style.display = tab === 'tasks' ? 'block' : 'none';
 }
 
 const _heroNumCache = {};
@@ -1103,10 +1116,83 @@ function setHeroNumber(id, newVal) {
   animateNumberEl(el, oldVal, newVal);
 }
 
+// مهام النادي — يكتبها المشرف وتظهر هون مباشرة لكل الطلاب
+function renderTasksList() {
+  const el = document.getElementById('home-tasks-list');
+  if (!el) return;
+  const tasks = state.tasks || [];
+  if (!tasks.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px 10px;opacity:0.7">
+      <div style="font-size:2rem;margin-bottom:6px">📭</div>
+      <div style="font-weight:700;font-size:0.85rem">ما في مهام حالياً</div>
+    </div>`;
+    return;
+  }
+  let doneLocal = {};
+  try { doneLocal = JSON.parse(localStorage.getItem('nadyTasksDoneLocal') || '{}'); } catch (e) {}
+
+  el.innerHTML = tasks.slice().reverse().map((t) => {
+    const completions = taskCompletions[t.id] || {};
+    const count = Object.keys(completions).length;
+    const myName = doneLocal[t.id];
+    const alreadyDone = myName && completions[taskNameKey(myName)];
+    return `
+    <div style="background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,248,230,0.9));
+      border:2px solid rgba(234,182,72,0.55); border-right:5px solid var(--gold, #c9971c);
+      border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 4px 12px rgba(120,80,10,0.08)">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex-shrink:0;width:34px;height:34px;border-radius:50%;
+          background:linear-gradient(135deg,#f0c75e,#c9971c);display:flex;align-items:center;justify-content:center;
+          font-size:1rem;box-shadow:0 2px 6px rgba(180,120,10,0.35)">📌</div>
+        <div style="flex:1;padding-top:2px">
+          <div style="font-weight:800;font-size:0.92rem;line-height:1.6;color:#4a3416">${escapeHTML(t.text)}</div>
+          <div style="font-size:0.72rem;color:#9a7a2e;font-weight:700;margin-top:4px">✅ أنجزها ${count} ${count === 1 ? 'طالب' : 'طالب'}</div>
+        </div>
+      </div>
+      ${alreadyDone ? `
+        <div style="margin-top:10px;background:rgba(63,174,114,0.15);border:1.5px solid #3fae72;border-radius:10px;padding:9px 12px;font-weight:800;font-size:0.82rem;color:#1f6b48;text-align:center">
+          ✅ تم! سجّلنا إنجازك يا ${escapeHTML(myName)}
+        </div>` : `
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <input type="text" id="task-name-${t.id}" placeholder="اكتب اسمك لتأكيد الإنجاز..."
+            onkeydown="if(event.key==='Enter') submitTaskCompletion(${t.id})"
+            style="flex:1;font-size:0.85rem;padding:9px 12px;border-radius:10px;border:1.5px solid rgba(0,0,0,0.15);font-family:inherit">
+          <button onclick="submitTaskCompletion(${t.id})" style="flex-shrink:0;background:linear-gradient(135deg,#3fae72,#1f8a58);
+            color:white;border:none;border-radius:10px;padding:9px 18px;font-weight:800;font-size:0.82rem;cursor:pointer">✅ تم</button>
+        </div>`}
+    </div>`;
+  }).join('');
+}
+
+function submitTaskCompletion(taskId) {
+  const input = document.getElementById('task-name-' + taskId);
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) { showToast('⚠️ اكتب اسمك أول'); return; }
+  const key = taskNameKey(name);
+  if (!key) { showToast('⚠️ اكتب اسم صحيح'); return; }
+  const existing = taskCompletions[taskId] || {};
+  if (existing[key]) { showToast(`⚠️ الاسم "${name}" مسجّل مسبقاً لهاي المهمة`); return; }
+
+  if (db) db.ref('nadyTaskCompletions/' + taskId + '/' + key).set({ name, at: Date.now() });
+
+  try {
+    const doneLocal = JSON.parse(localStorage.getItem('nadyTasksDoneLocal') || '{}');
+    doneLocal[taskId] = name;
+    localStorage.setItem('nadyTasksDoneLocal', JSON.stringify(doneLocal));
+  } catch (e) {}
+
+  if (!taskCompletions[taskId]) taskCompletions[taskId] = {};
+  taskCompletions[taskId][key] = { name, at: Date.now() };
+  showToast(`🎉 تمام يا ${name}! سجّلنا إنجازك`);
+  renderTasksList();
+}
+
 function renderHome() {
   setHeroNumber('h-students', state.students.length);
   setHeroNumber('h-teams', state.teams.length);
   setHeroNumber('h-total', state.students.reduce((s,x) => s + x.points, 0));
+  renderTasksList();
 
   // طالب الأسبوع
   const studentsByWeek = state.students.slice().sort((a,b) => weekPointsOf(b) - weekPointsOf(a));
@@ -1646,6 +1732,12 @@ async function startApp() {
       <div class="title">تعذّر الاتصال بالخادم</div>
       <div class="sub">تحقق من اتصالك بالإنترنت وأعد تحميل الصفحة</div>
     </div>`);
+  });
+
+  // أسماء الطلاب يلي أنجزوا كل مهمة — مسار منفصل عشان يوصل فوراً بدون ما ينتظر حفظ المشرف الكامل
+  db.ref('nadyTaskCompletions').on('value', snap => {
+    taskCompletions = snap.val() || {};
+    renderTasksList();
   });
 }
 

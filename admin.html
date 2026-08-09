@@ -788,6 +788,17 @@
     <div class="card-title">🏅 ترتيب الفرق</div>
     <div id="home-teams-rank"></div>
   </div>
+
+  <!-- المهام -->
+  <div class="card" id="home-list-tasks" style="display:none">
+    <div class="card-title">📌 مهام النادي</div>
+    <div class="section-label">اكتب مهمة/تنبيه وبيظهر فوراً لكل الطلاب بصفحتهم</div>
+    <div class="row" style="margin-bottom:12px">
+      <input type="text" id="new-task-input" placeholder="مثلاً: احضروا ملابس رياضية بكرة..." onkeydown="if(event.key==='Enter') addTask()">
+      <button class="btn btn-gold" style="width:auto;flex-shrink:0" onclick="addTask()">➕ إضافة</button>
+    </div>
+    <div id="tasks-list"></div>
+  </div>
 </div>
 
 <!-- ===================== ADD POINTS ===================== -->
@@ -1512,6 +1523,7 @@ function ensureFields() {
   if (!state.logBackups) state.logBackups = []; // نسخ احتياطية تلقائية للسجل (تتكوّن قبل أي مسح كامل)
   if (state.maintenanceMode === undefined) state.maintenanceMode = false; // إيقاف/تشغيل بث صفحة الطلاب
   if (!state.bgSpeed) state.bgSpeed = 14; // سرعة حركة الخلفية بالثواني (مشتركة بين كل المشرفين والطلاب)
+  if (!state.tasks) state.tasks = []; // مهام النادي — يكتبها المشرف وتظهر لكل الطلاب
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
@@ -2637,6 +2649,7 @@ const firebaseConfig = {
 };
 
 let db = null;
+let taskCompletions = {}; // { [taskId]: { [nameKey]: {name, at} } } — أسماء الطلاب يلي أنجزوا كل مهمة
 let firebaseSaveTimeout = null;
 let pendingLocalWrite = false; // true بين لحظة التعديل ولحظة اكتمال الرفع لـ Firebase
 let suppressNextIncoming = false; // لتفادي ارتداد الصدى: تجاهل أول تحديث وارد بعد رفعنا نحن له
@@ -2710,7 +2723,8 @@ function applyPublicSnapshotToState(snapshot) {
     },
     adminAuth: src.adminAuth || undefined,
     biometricResetAt: src.biometricResetAt || 0,
-    pointsArchive: src.pointsArchive || undefined
+    pointsArchive: src.pointsArchive || undefined,
+    tasks: src.tasks || []
   };
   ensureFields();
   purgeStaleBiometrics(); // إذا مشرف تاني ضغط زر الطوارئ، هاد بيلغي أي بصمة قديمة على هذا الجهاز فور وصول التحديث
@@ -3595,7 +3609,7 @@ let homeListTab = 'fajr';
 function renderHomeListsTabs() {
   const wrap = document.getElementById('home-lists-tabs');
   if (!wrap) return;
-  const opts = [['fajr','🕌 الفجر'], ['points','🥇 النقاط'], ['teams','🏅 الفرق']];
+  const opts = [['fajr','🕌 الفجر'], ['points','🥇 النقاط'], ['teams','🏅 الفرق'], ['tasks','📌 المهام']];
   wrap.innerHTML = opts.map(([id, label]) => `
     <button onclick="setHomeListTab('${id}')"
       style="flex:0 0 auto;padding:7px 14px;border-radius:20px;border:2px solid ${homeListTab === id ? 'transparent' : 'var(--gray-soft)'};
@@ -3611,10 +3625,99 @@ function setHomeListTab(tab) {
   document.getElementById('home-list-fajr').style.display = tab === 'fajr' ? 'block' : 'none';
   document.getElementById('home-list-points').style.display = tab === 'points' ? 'block' : 'none';
   document.getElementById('home-list-teams').style.display = tab === 'teams' ? 'block' : 'none';
+  document.getElementById('home-list-tasks').style.display = tab === 'tasks' ? 'block' : 'none';
+}
+
+// ===================== مهام النادي — يكتبها المشرف وتظهر فوراً لكل الطلاب =====================
+// يحوّل اسم الطالب لمفتاح صالح كمسار بفايربيز (بدون . # $ [ ]) — ونفس المفتاح يمنع الاسم يتسجل مرتين لنفس المهمة
+function taskNameKey(name) {
+  return String(name).trim().replace(/[.#$\[\]\/]/g, '_').replace(/\s+/g, ' ').slice(0, 100);
+}
+
+function renderTasksList() {
+  const el = document.getElementById('tasks-list');
+  if (!el) return;
+  const tasks = state.tasks || [];
+  if (!tasks.length) {
+    el.innerHTML = `<div style="text-align:center;color:var(--gray-text);font-size:0.85rem;padding:14px 0">ما في مهام حالياً — أضف أول مهمة من فوق</div>`;
+    return;
+  }
+  el.innerHTML = tasks.slice().reverse().map((t, i) => {
+    const doneCount = Object.keys(taskCompletions[t.id] || {}).length;
+    return `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--cream-soft, #fbf6ea);border:2px solid var(--gold-soft);border-radius:12px;padding:10px 12px;margin-bottom:8px">
+      <div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--gold));color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem">${tasks.length - i}</div>
+      <div style="flex:1;font-weight:700;color:var(--green-deep);font-size:0.9rem;line-height:1.5">${escapeHTML(t.text)}</div>
+      <button onclick="showTaskCompletions(${t.id})" title="عرض الأسماء" style="flex-shrink:0;background:#e6f4ef;color:var(--green-mid);border:2px solid var(--green-mid);border-radius:10px;padding:6px 10px;font-weight:800;font-size:0.75rem;cursor:pointer;white-space:nowrap">✅ ${doneCount}</button>
+      <button onclick="deleteTask(${t.id})" title="حذف المهمة" style="flex-shrink:0;background:none;border:none;color:#b8462f;font-size:1.1rem;cursor:pointer;padding:4px">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+// نافذة عرض أسماء الطلاب يلي أنجزوا مهمة معيّنة — مع إمكانية حذف اسم غلط/مزحة
+function showTaskCompletions(taskId) {
+  const task = (state.tasks || []).find(t => t.id === taskId);
+  if (!task) return;
+  const completions = taskCompletions[taskId] || {};
+  const entries = Object.entries(completions).sort((a, b) => (a[1].at||0) - (b[1].at||0));
+  let backdrop = document.getElementById('cmodal-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'cmodal-backdrop';
+    backdrop.className = 'cmodal-backdrop';
+    document.body.appendChild(backdrop);
+  }
+  backdrop.onclick = (e) => { if (e.target === backdrop) closeAccountModal(); };
+  const rows = entries.length
+    ? entries.map(([key, v], i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;${i % 2 ? 'background:#f3ede0' : ''}">
+        <span style="font-weight:700;color:var(--green-deep)">${i + 1}. ${escapeHTML(v.name || '')}</span>
+        <button onclick="deleteTaskCompletion(${taskId}, '${escapeAttr(key)}')" title="حذف" style="background:none;border:none;color:#b8462f;font-size:1rem;cursor:pointer">🗑️</button>
+      </div>`).join('')
+    : `<div style="text-align:center;color:var(--gray-text);padding:16px 0">لسا محدا أنجزها</div>`;
+  backdrop.innerHTML = `
+    <div class="cmodal-box" style="text-align:right">
+      <div class="cmodal-icon" style="text-align:center">✅</div>
+      <div class="cmodal-msg" style="text-align:center">منجزين مهمة:<br>"${escapeHTML(task.text)}"</div>
+      <div style="max-height:42vh;overflow-y:auto;margin-bottom:14px">${rows}</div>
+      <div class="cmodal-btns"><button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button></div>
+    </div>`;
+  backdrop._token = (backdrop._token || 0) + 1;
+  requestAnimationFrame(() => backdrop.classList.add('show'));
+}
+
+function deleteTaskCompletion(taskId, key) {
+  if (db) db.ref('nadyTaskCompletions/' + taskId + '/' + key).remove();
+  if (taskCompletions[taskId]) delete taskCompletions[taskId][key];
+  showTaskCompletions(taskId); // إعادة رسم النافذة فوراً بالقائمة المحدثة
+  renderTasksList();
+}
+
+function addTask() {
+  const input = document.getElementById('new-task-input');
+  const text = (input.value || '').trim();
+  if (!text) { toast('⚠️ اكتب نص المهمة أول'); return; }
+  if (!state.tasks) state.tasks = [];
+  state.tasks.push({ id: Date.now(), text, createdAt: Date.now() });
+  input.value = '';
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
+  logEntry('📌', `إضافة مهمة جديدة: "${text}"` + (currentAdmin ? ' — ' + currentAdmin : ''));
+  save(); renderTasksList();
+  toast('✅ تمت إضافة المهمة، وظهرت لكل الطلاب فوراً');
+}
+
+async function deleteTask(taskId) {
+  const t = (state.tasks || []).find(x => x.id === taskId);
+  if (!t) return;
+  if (!await customConfirm(`حذف المهمة "${t.text}"؟`, '🗑️')) return;
+  state.tasks = (state.tasks || []).filter(x => x.id !== taskId);
+  save(); renderTasksList();
+  toast('🗑️ تم حذف المهمة');
 }
 
 function renderHome() {
   renderHomeListsTabs();
+  renderTasksList();
   renderAlerts();
   // ملخص الأسبوع الحالي
   document.getElementById('week-range-label').textContent =
@@ -4749,6 +4852,12 @@ async function startApp() {
         if (!data) return;
         applyPublicSnapshotToState(data); // نفس دالة التطبيق المستخدمة برابط الأهالي
         render();
+      });
+
+      // أسماء الطلاب يلي أنجزوا كل مهمة — بمسار منفصل عن nadyState حتى ما يتعارض مع حفظ المشرف الكامل كل 1.5 ثانية
+      db.ref('nadyTaskCompletions').on('value', snap => {
+        taskCompletions = snap.val() || {};
+        renderTasksList();
       });
     }
   }
