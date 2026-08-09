@@ -1384,6 +1384,19 @@ function renderAccountModalContent(backdrop, name) {
       </div>
       <div style="text-align:center;font-weight:800;color:var(--green-deep);margin-bottom:10px" id="acc-bg-speed-val">${state.bgSpeed || 14}ث</div>
 
+      <div class="section-label" style="margin-top:18px">🎵 موسيقى النادي</div>
+      <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
+        حط رابط ملف صوتي (mp3) وبيشتغل مباشرة عند كل الطلاب بصفحتهم. لازم يكون رابط مباشر للملف الصوتي نفسه (مو رابط يوتيوب أو صفحة).
+      </p>
+      <input type="text" id="acc-music-url" placeholder="https://example.com/song.mp3" value="${escapeAttr(state.music && state.music.url || '')}" style="margin-bottom:10px">
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button class="btn btn-sm btn-gold" style="width:auto;flex:1" onclick="playClubMusic()">▶️ تشغيل عند الكل</button>
+        <button class="btn btn-sm" style="width:auto;flex:1;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="stopClubMusic()">⏹️ إيقاف عند الكل</button>
+      </div>
+      <div style="font-size:0.76rem;color:var(--gray-text);text-align:center;margin-bottom:6px">
+        ${state.music && state.music.playing ? '🎶 شغالة حالياً عند الطلاب' : '⏸️ متوقفة حالياً'}
+      </div>
+
       ${name === 'رائد' ? `
       <div class="section-label" style="margin-top:18px;color:#b8462f">🚨 طوارئ أمنية (رائد فقط)</div>
       <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
@@ -1396,6 +1409,28 @@ function renderAccountModalContent(backdrop, name) {
         <button class="cmodal-btn cmodal-btn-secondary" onclick="closeAccountModal()">إغلاق</button>
       </div>
     </div>`;
+}
+
+// تشغيل/إيقاف موسيقى النادي عند كل الطلاب مباشرة (رابط mp3 مباشر)
+function playClubMusic() {
+  const input = document.getElementById('acc-music-url');
+  const url = (input.value || '').trim();
+  if (!url) { toast('⚠️ حط رابط الملف الصوتي أول'); return; }
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
+  state.music = { url, playing: true, startedAt: Date.now() };
+  logEntry('🎵', `تشغيل موسيقى النادي عند كل الطلاب` + (currentAdmin ? ' — ' + currentAdmin : ''));
+  save();
+  toast('▶️ تم تشغيل الموسيقى عند كل الطلاب');
+  openAccountModal();
+}
+
+function stopClubMusic() {
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
+  if (state.music) state.music.playing = false;
+  logEntry('⏹️', `إيقاف موسيقى النادي عند كل الطلاب` + (currentAdmin ? ' — ' + currentAdmin : ''));
+  save();
+  toast('⏹️ تم إيقاف الموسيقى عند كل الطلاب');
+  openAccountModal();
 }
 
 // إيقاف/تشغيل بث البيانات لصفحة الطلاب — متاح لكل المشرفين
@@ -1524,6 +1559,7 @@ function ensureFields() {
   if (state.maintenanceMode === undefined) state.maintenanceMode = false; // إيقاف/تشغيل بث صفحة الطلاب
   if (!state.bgSpeed) state.bgSpeed = 14; // سرعة حركة الخلفية بالثواني (مشتركة بين كل المشرفين والطلاب)
   if (!state.tasks) state.tasks = []; // مهام النادي — يكتبها المشرف وتظهر لكل الطلاب
+  if (!state.music) state.music = { url: null, playing: false, startedAt: null }; // موسيقى النادي المشتركة
   if (!state.league) state.league = { matches: [], playerOfWeek: {}, tournament: null };
   if (!state.league.playerOfWeek) state.league.playerOfWeek = {};
   if (!state.league.topScorerOverride) state.league.topScorerOverride = {};
@@ -2724,7 +2760,8 @@ function applyPublicSnapshotToState(snapshot) {
     adminAuth: src.adminAuth || undefined,
     biometricResetAt: src.biometricResetAt || 0,
     pointsArchive: src.pointsArchive || undefined,
-    tasks: src.tasks || []
+    tasks: src.tasks || [],
+    music: src.music || { url: null, playing: false, startedAt: null }
   };
   ensureFields();
   purgeStaleBiometrics(); // إذا مشرف تاني ضغط زر الطوارئ، هاد بيلغي أي بصمة قديمة على هذا الجهاز فور وصول التحديث
