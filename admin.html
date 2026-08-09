@@ -1386,9 +1386,9 @@ function renderAccountModalContent(backdrop, name) {
 
       <div class="section-label" style="margin-top:18px">🎵 موسيقى النادي</div>
       <p style="font-size:0.76rem;color:var(--gray-text);line-height:1.6;margin-bottom:10px">
-        حط رابط ملف صوتي (mp3) وبيشتغل مباشرة عند كل الطلاب بصفحتهم. لازم يكون رابط مباشر للملف الصوتي نفسه (مو رابط يوتيوب أو صفحة).
+        حط رابط الأغنية وبتشتغل مباشرة عند كل الطلاب بصفحتهم. بيدعم: رابط mp3 مباشر، رابط مشاركة Google Drive، رابط يوتيوب، أو رابط SoundCloud.
       </p>
-      <input type="text" id="acc-music-url" placeholder="https://example.com/song.mp3" value="${escapeAttr(state.music && state.music.url || '')}" style="margin-bottom:10px">
+      <input type="text" id="acc-music-url" placeholder="https://... (mp3 / Google Drive / YouTube / SoundCloud)" value="${escapeAttr(state.music && state.music.url || '')}" style="margin-bottom:10px">
       <div style="display:flex;gap:8px;margin-bottom:6px">
         <button class="btn btn-sm btn-gold" style="width:auto;flex:1" onclick="playClubMusic()">▶️ تشغيل عند الكل</button>
         <button class="btn btn-sm" style="width:auto;flex:1;background:#f8e6df;color:#b8462f;border:2px solid #cf8a78" onclick="stopClubMusic()">⏹️ إيقاف عند الكل</button>
