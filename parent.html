@@ -1640,11 +1640,17 @@ function startAudioMusic(url) {
   teardownOtherPlayers('audio');
   _musicMode = 'audio';
   if (!_musicAudioEl) _musicAudioEl = document.getElementById('club-music-audio');
+  if (!_musicAudioEl._errorBound) {
+    _musicAudioEl.addEventListener('error', () => {
+      showToast('⚠️ تعذر تحميل ملف الموسيقى — تأكد إن الرابط صحيح ومباشر');
+    });
+    _musicAudioEl._errorBound = true;
+  }
   _musicAudioEl.src = url;
-  _musicAudioEl.muted = localStorage.getItem('nadyMusicMuted') === '1';
+  _musicAudioEl.muted = true; // نبلش مكتوم دايماً — هيك التشغيل التلقائي مسموح دايماً بكل المتصفحات
   initMusicMuteToggle();
-  const p = _musicAudioEl.play();
-  if (p && p.catch) p.catch(() => showMusicTapPrompt(() => _musicAudioEl.play()));
+  _musicAudioEl.play().catch(() => {});
+  armFirstInteractionUnmute();
 }
 
 function ensureYouTubeAPI(cb) {
@@ -1665,7 +1671,7 @@ function startYouTubeMusic(url) {
   ensureYouTubeAPI(() => {
     const holder = hiddenHolder('yt-music-holder');
     if (_ytPlayer && _ytReady) {
-      try { _ytPlayer.loadVideoById(id); attemptYouTubePlay(); } catch (e) {}
+      try { _ytPlayer.loadVideoById(id); _ytPlayer.mute(); _ytPlayer.playVideo(); armFirstInteractionUnmute(); } catch (e) {}
       return;
     }
     if (!document.getElementById('yt-music-player')) {
@@ -1675,22 +1681,15 @@ function startYouTubeMusic(url) {
     }
     _ytPlayer = new YT.Player('yt-music-player', {
       videoId: id,
-      playerVars: { autoplay: 1, loop: 1, playlist: id, controls: 0 },
-      events: { onReady: () => { _ytReady = true; initMusicMuteToggle(); attemptYouTubePlay(); } }
+      playerVars: { autoplay: 1, loop: 1, playlist: id, controls: 0, mute: 1 },
+      events: { onReady: () => {
+        _ytReady = true;
+        initMusicMuteToggle();
+        try { _ytPlayer.mute(); _ytPlayer.playVideo(); } catch (e) {}
+        armFirstInteractionUnmute();
+      } }
     });
   });
-}
-function attemptYouTubePlay() {
-  try {
-    localStorage.getItem('nadyMusicMuted') === '1' ? _ytPlayer.mute() : _ytPlayer.unMute();
-    _ytPlayer.playVideo();
-    setTimeout(() => {
-      try {
-        const s = _ytPlayer.getPlayerState();
-        if (s !== 1 && s !== 3) showMusicTapPrompt(() => { _ytPlayer.unMute(); _ytPlayer.playVideo(); });
-      } catch (e) {}
-    }, 1200);
-  } catch (e) {}
 }
 
 function ensureSoundCloudAPI(cb) {
@@ -1711,44 +1710,49 @@ function startSoundCloudMusic(url) {
     const holder = hiddenHolder('sc-music-holder');
     let iframe = document.getElementById('sc-music-iframe');
     const src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) + '&auto_play=true&show_artwork=false';
+    const setupWidget = () => {
+      _scWidget = SC.Widget(iframe);
+      _scWidget.bind(SC.Widget.Events.READY, () => {
+        _scReady = true;
+        initMusicMuteToggle();
+        _scWidget.setVolume(0); // نبلش مكتوم
+        _scWidget.play();
+        armFirstInteractionUnmute();
+      });
+    };
     if (!iframe) {
       iframe = document.createElement('iframe');
       iframe.id = 'sc-music-iframe'; iframe.allow = 'autoplay'; iframe.width = '1'; iframe.height = '1';
       iframe.src = src;
       holder.appendChild(iframe);
-      iframe.onload = () => {
-        _scWidget = SC.Widget(iframe);
-        _scWidget.bind(SC.Widget.Events.READY, () => {
-          _scReady = true;
-          initMusicMuteToggle();
-          _scWidget.setVolume(localStorage.getItem('nadyMusicMuted') === '1' ? 0 : 100);
-          _scWidget.play();
-          setTimeout(() => { _scWidget.isPaused(paused => { if (paused) showMusicTapPrompt(() => _scWidget.play()); }); }, 1500);
-        });
-      };
+      iframe.onload = setupWidget;
     } else {
       iframe.src = src;
+      iframe.onload = setupWidget;
     }
   });
 }
 
-// المتصفح ممكن يمنع التشغيل التلقائي بدون تفاعل مباشر من المستخدم — هاد الزر بيحل المشكلة بضغطة وحدة
-function showMusicTapPrompt(retryFn) {
-  if (document.getElementById('music-tap-btn')) return;
-  const btn = document.createElement('button');
-  btn.id = 'music-tap-btn';
-  btn.type = 'button';
-  btn.textContent = '🎵 اضغط لتشغيل موسيقى النادي';
-  btn.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000;pointer-events:auto;background:linear-gradient(135deg,#3fae72,#1f8a58);color:white;border:none;border-radius:30px;padding:13px 24px;font-weight:800;font-size:0.85rem;box-shadow:0 8px 24px rgba(0,0,0,0.4);cursor:pointer;font-family:Tajawal,sans-serif;max-width:90vw;white-space:nowrap';
-  const tryPlay = (e) => {
-    e.preventDefault();
-    try { (retryFn || (() => _musicAudioEl && _musicAudioEl.play()))(); } catch (err) {}
-    btn.remove();
+// نبلش الموسيقى مكتومة دايماً (مسموح بكل المتصفحات)، وأول ما الطالب يتفاعل مع الصفحة لأي سبب
+// (يدوس، يسكرول، أي شي) — بتنفك الكتم بالخلفية بصمت، بدون ما يشوف أي زر "اضغط هون"
+let _interactionArmed = false;
+function armFirstInteractionUnmute() {
+  if (_interactionArmed) return;
+  _interactionArmed = true;
+  const events = ['click', 'touchstart', 'keydown', 'scroll'];
+  const handler = () => {
+    _interactionArmed = false;
+    events.forEach(ev => document.removeEventListener(ev, handler));
+    if (localStorage.getItem('nadyMusicMuted') === '1') return; // الطالب كتمها بنفسه — نحترم اختياره
+    if (!(state.music && state.music.playing)) return; // صارت موقوفة بين هيك وهيك — ما منشغلها
+    if (_musicMode === 'audio' && _musicAudioEl) { _musicAudioEl.muted = false; _musicAudioEl.play().catch(() => {}); }
+    if (_musicMode === 'youtube' && _ytPlayer && _ytReady) { try { _ytPlayer.unMute(); _ytPlayer.playVideo(); } catch (e) {} }
+    if (_musicMode === 'soundcloud' && _scWidget && _scReady) { try { _scWidget.setVolume(100); _scWidget.play(); } catch (e) {} }
   };
-  btn.addEventListener('click', tryPlay);
-  btn.addEventListener('touchend', tryPlay);
-  document.body.appendChild(btn);
+  events.forEach(ev => document.addEventListener(ev, handler, { passive: true }));
 }
+
+// المتصفح ممكن يمنع التشغيل التلقائي بدون تفاعل مباشر من المستخدم — هاد الزر بيحل المشكلة بضغطة وحدة
 function hideMusicTapPrompt() { document.getElementById('music-tap-btn')?.remove(); }
 
 // زر كتم صغير وثابت — يسمح للطالب يسكت الموسيقى عند نفسه فقط، بدون ما يأثر على باقي الطلاب
