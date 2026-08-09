@@ -1574,46 +1574,179 @@ function showToast(msg) {
 }
 
 // ===================== موسيقى النادي (يتحكم فيها المشرف، تشتغل هون تلقائياً) =====================
+// بتدعم: رابط mp3 مباشر / رابط مشاركة Google Drive / يوتيوب / ساوند كلاود
 let _musicAudioEl = null;
+let _musicMode = null; // 'audio' | 'youtube' | 'soundcloud'
 let _lastMusicUrl = null;
 let _lastMusicPlaying = null;
+let _ytPlayer = null, _ytReady = false;
+let _scWidget = null, _scReady = false;
+
+function detectMusicSourceType(url) {
+  if (!url) return 'mp3';
+  if (/drive\.google\.com/.test(url)) return 'gdrive';
+  if (/(youtube\.com|youtu\.be)/.test(url)) return 'youtube';
+  if (/soundcloud\.com/.test(url)) return 'soundcloud';
+  return 'mp3';
+}
+function gdriveDirectUrl(url) {
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  const id = m ? m[1] : null;
+  return id ? `https://drive.google.com/uc?export=download&id=${id}` : url;
+}
+function youtubeVideoId(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function hiddenHolder(id) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id;
+    el.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function teardownOtherPlayers(except) {
+  if (except !== 'audio' && _musicAudioEl) { _musicAudioEl.pause(); }
+  if (except !== 'youtube' && _ytPlayer && _ytReady) { try { _ytPlayer.stopVideo(); } catch (e) {} }
+  if (except !== 'soundcloud' && _scWidget && _scReady) { try { _scWidget.pause(); } catch (e) {} }
+}
 
 function syncClubMusic() {
   const m = state.music || {};
-  if (!_musicAudioEl) _musicAudioEl = document.getElementById('club-music-audio');
-  if (!_musicAudioEl) return;
-
   const wantPlaying = !!(m.playing && m.url);
   const urlChanged = m.url !== _lastMusicUrl;
 
-  if (urlChanged) {
-    _musicAudioEl.src = m.url || '';
-    _musicAudioEl.muted = localStorage.getItem('nadyMusicMuted') === '1';
-    _lastMusicUrl = m.url || null;
+  if (!wantPlaying) {
+    teardownOtherPlayers(null);
+    hideMusicTapPrompt(); hideMusicMuteToggle();
+    _lastMusicPlaying = false; _lastMusicUrl = m.url || null;
+    return;
   }
+  if (urlChanged || _lastMusicPlaying !== true) {
+    _lastMusicUrl = m.url; _lastMusicPlaying = true;
+    const type = detectMusicSourceType(m.url);
+    if (type === 'youtube') startYouTubeMusic(m.url);
+    else if (type === 'soundcloud') startSoundCloudMusic(m.url);
+    else startAudioMusic(type === 'gdrive' ? gdriveDirectUrl(m.url) : m.url);
+  }
+}
 
-  if (wantPlaying) {
-    initMusicMuteToggle();
-    if (_lastMusicPlaying !== true || urlChanged) {
-      const p = _musicAudioEl.play();
-      if (p && p.catch) p.catch(() => showMusicTapPrompt());
-    }
-  } else {
-    _musicAudioEl.pause();
-    hideMusicTapPrompt();
-    hideMusicMuteToggle();
+function startAudioMusic(url) {
+  teardownOtherPlayers('audio');
+  _musicMode = 'audio';
+  if (!_musicAudioEl) _musicAudioEl = document.getElementById('club-music-audio');
+  _musicAudioEl.src = url;
+  _musicAudioEl.muted = localStorage.getItem('nadyMusicMuted') === '1';
+  initMusicMuteToggle();
+  const p = _musicAudioEl.play();
+  if (p && p.catch) p.catch(() => showMusicTapPrompt(() => _musicAudioEl.play()));
+}
+
+function ensureYouTubeAPI(cb) {
+  if (window.YT && window.YT.Player) { cb(); return; }
+  const prev = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = () => { if (prev) prev(); cb(); };
+  if (!document.getElementById('yt-iframe-api')) {
+    const s = document.createElement('script');
+    s.id = 'yt-iframe-api'; s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
   }
-  _lastMusicPlaying = wantPlaying;
+}
+function startYouTubeMusic(url) {
+  const id = youtubeVideoId(url);
+  if (!id) { showToast('⚠️ رابط يوتيوب غير صالح'); return; }
+  teardownOtherPlayers('youtube');
+  _musicMode = 'youtube';
+  ensureYouTubeAPI(() => {
+    const holder = hiddenHolder('yt-music-holder');
+    if (_ytPlayer && _ytReady) {
+      try { _ytPlayer.loadVideoById(id); attemptYouTubePlay(); } catch (e) {}
+      return;
+    }
+    if (!document.getElementById('yt-music-player')) {
+      const inner = document.createElement('div');
+      inner.id = 'yt-music-player';
+      holder.appendChild(inner);
+    }
+    _ytPlayer = new YT.Player('yt-music-player', {
+      videoId: id,
+      playerVars: { autoplay: 1, loop: 1, playlist: id, controls: 0 },
+      events: { onReady: () => { _ytReady = true; initMusicMuteToggle(); attemptYouTubePlay(); } }
+    });
+  });
+}
+function attemptYouTubePlay() {
+  try {
+    localStorage.getItem('nadyMusicMuted') === '1' ? _ytPlayer.mute() : _ytPlayer.unMute();
+    _ytPlayer.playVideo();
+    setTimeout(() => {
+      try {
+        const s = _ytPlayer.getPlayerState();
+        if (s !== 1 && s !== 3) showMusicTapPrompt(() => { _ytPlayer.unMute(); _ytPlayer.playVideo(); });
+      } catch (e) {}
+    }, 1200);
+  } catch (e) {}
+}
+
+function ensureSoundCloudAPI(cb) {
+  if (window.SC && window.SC.Widget) { cb(); return; }
+  if (!document.getElementById('sc-widget-api')) {
+    const s = document.createElement('script');
+    s.id = 'sc-widget-api'; s.src = 'https://w.soundcloud.com/player/api.js';
+    s.onload = cb;
+    document.head.appendChild(s);
+  } else {
+    const check = setInterval(() => { if (window.SC && window.SC.Widget) { clearInterval(check); cb(); } }, 300);
+  }
+}
+function startSoundCloudMusic(url) {
+  teardownOtherPlayers('soundcloud');
+  _musicMode = 'soundcloud';
+  ensureSoundCloudAPI(() => {
+    const holder = hiddenHolder('sc-music-holder');
+    let iframe = document.getElementById('sc-music-iframe');
+    const src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) + '&auto_play=true&show_artwork=false';
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'sc-music-iframe'; iframe.allow = 'autoplay'; iframe.width = '1'; iframe.height = '1';
+      iframe.src = src;
+      holder.appendChild(iframe);
+      iframe.onload = () => {
+        _scWidget = SC.Widget(iframe);
+        _scWidget.bind(SC.Widget.Events.READY, () => {
+          _scReady = true;
+          initMusicMuteToggle();
+          _scWidget.setVolume(localStorage.getItem('nadyMusicMuted') === '1' ? 0 : 100);
+          _scWidget.play();
+          setTimeout(() => { _scWidget.isPaused(paused => { if (paused) showMusicTapPrompt(() => _scWidget.play()); }); }, 1500);
+        });
+      };
+    } else {
+      iframe.src = src;
+    }
+  });
 }
 
 // المتصفح ممكن يمنع التشغيل التلقائي بدون تفاعل مباشر من المستخدم — هاد الزر بيحل المشكلة بضغطة وحدة
-function showMusicTapPrompt() {
+function showMusicTapPrompt(retryFn) {
   if (document.getElementById('music-tap-btn')) return;
   const btn = document.createElement('button');
   btn.id = 'music-tap-btn';
+  btn.type = 'button';
   btn.textContent = '🎵 اضغط لتشغيل موسيقى النادي';
-  btn.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:500;background:linear-gradient(135deg,#3fae72,#1f8a58);color:white;border:none;border-radius:30px;padding:12px 22px;font-weight:800;font-size:0.85rem;box-shadow:0 8px 20px rgba(0,0,0,0.3);cursor:pointer;font-family:Tajawal,sans-serif';
-  btn.onclick = () => { _musicAudioEl.play().then(() => btn.remove()).catch(() => {}); };
+  btn.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000;pointer-events:auto;background:linear-gradient(135deg,#3fae72,#1f8a58);color:white;border:none;border-radius:30px;padding:13px 24px;font-weight:800;font-size:0.85rem;box-shadow:0 8px 24px rgba(0,0,0,0.4);cursor:pointer;font-family:Tajawal,sans-serif;max-width:90vw;white-space:nowrap';
+  const tryPlay = (e) => {
+    e.preventDefault();
+    try { (retryFn || (() => _musicAudioEl && _musicAudioEl.play()))(); } catch (err) {}
+    btn.remove();
+  };
+  btn.addEventListener('click', tryPlay);
+  btn.addEventListener('touchend', tryPlay);
   document.body.appendChild(btn);
 }
 function hideMusicTapPrompt() { document.getElementById('music-tap-btn')?.remove(); }
@@ -1623,15 +1756,22 @@ function initMusicMuteToggle() {
   if (document.getElementById('music-mute-btn')) return;
   const btn = document.createElement('button');
   btn.id = 'music-mute-btn';
+  btn.type = 'button';
   const muted = localStorage.getItem('nadyMusicMuted') === '1';
   btn.textContent = muted ? '🔇' : '🔊';
-  btn.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:500;background:rgba(0,0,0,0.55);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
-  btn.onclick = () => {
+  btn.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:100000;pointer-events:auto;background:rgba(0,0,0,0.55);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+  const toggleMute = (e) => {
+    e.preventDefault();
     const isMuted = localStorage.getItem('nadyMusicMuted') === '1';
-    localStorage.setItem('nadyMusicMuted', isMuted ? '0' : '1');
-    if (_musicAudioEl) _musicAudioEl.muted = !isMuted;
-    btn.textContent = !isMuted ? '🔇' : '🔊';
+    const newMuted = !isMuted;
+    localStorage.setItem('nadyMusicMuted', newMuted ? '1' : '0');
+    if (_musicMode === 'audio' && _musicAudioEl) _musicAudioEl.muted = newMuted;
+    if (_musicMode === 'youtube' && _ytPlayer && _ytReady) { try { newMuted ? _ytPlayer.mute() : _ytPlayer.unMute(); } catch (e) {} }
+    if (_musicMode === 'soundcloud' && _scWidget && _scReady) { try { _scWidget.setVolume(newMuted ? 0 : 100); } catch (e) {} }
+    btn.textContent = newMuted ? '🔇' : '🔊';
   };
+  btn.addEventListener('click', toggleMute);
+  btn.addEventListener('touchend', toggleMute);
   document.body.appendChild(btn);
 }
 function hideMusicMuteToggle() { document.getElementById('music-mute-btn')?.remove(); }
