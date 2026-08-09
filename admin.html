@@ -1000,6 +1000,16 @@
     <div id="log-category-summary"></div>
     <div id="log-list"></div>
   </div>
+
+  <div class="card">
+    <div class="card-title">🎮 تصفير الحماس (موسم/تحدي جديد)</div>
+    <div class="section-label">
+      بيصفّر نقاط كل الطلاب والفرق من جديد عشان ترجع الحماس بمنتصف النادي — والنقاط القديمة بتنحفظ بأمان جانباً، وتقدر تدمجها مع الجديدة بأي وقت تحب (مثلاً آخر النادي).
+    </div>
+    <div id="points-season-status"></div>
+    <button class="btn btn-sm btn-danger" style="width:100%;margin-bottom:8px" onclick="resetSeasonPoints()">🔄 تصفير كل النقاط الآن</button>
+    <button class="btn btn-sm" style="width:100%;background:var(--gold-soft);color:var(--gold);border:2px solid var(--gold)" onclick="mergeSeasonPoints()">🔗 دمج النقاط القديمة مع الجديدة</button>
+  </div>
 </div>
 
 <!-- ===================== LEAGUE (دوري الرجال) ===================== -->
@@ -2699,7 +2709,8 @@ function applyPublicSnapshotToState(snapshot) {
       tournament: (src.league && src.league.tournament) || null
     },
     adminAuth: src.adminAuth || undefined,
-    biometricResetAt: src.biometricResetAt || 0
+    biometricResetAt: src.biometricResetAt || 0,
+    pointsArchive: src.pointsArchive || undefined
   };
   ensureFields();
   purgeStaleBiometrics(); // إذا مشرف تاني ضغط زر الطوارئ، هاد بيلغي أي بصمة قديمة على هذا الجهاز فور وصول التحديث
@@ -3226,6 +3237,62 @@ async function archiveCurrentLogManually() {
   archiveLogBatch(label);
   save(); render();
   toast('✅ تم أرشفة السجل الحالي، وبلش سجل جديد فاضي');
+}
+
+// ===================== تصفير/دمج نقاط الموسم — لإرجاع الحماس منتصف النادي بدون ما تضيع النقاط القديمة =====================
+function renderPointsSeasonStatus() {
+  const el = document.getElementById('points-season-status');
+  if (!el) return;
+  if (!state.pointsArchive) {
+    el.innerHTML = `<div style="font-size:0.78rem;color:var(--gray-text);margin-bottom:10px">ما في نقاط قديمة محفوظة حالياً.</div>`;
+    return;
+  }
+  const a = state.pointsArchive;
+  const dateStr = new Date(a.archivedAt).toLocaleDateString('ar-EG', { day:'numeric', month:'long', year:'numeric' });
+  el.innerHTML = `<div style="font-size:0.8rem;background:#fff8e6;border:2px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:10px;line-height:1.7">
+    📦 محفوظ عندك نقاط <b>${a.studentsSnapshot.length}</b> طالب و<b>${a.teamsSnapshot.length}</b> فريق من تاريخ ${dateStr}، بانتظار الدمج.
+  </div>`;
+}
+
+async function resetSeasonPoints() {
+  if (state.pointsArchive) {
+    toast('⚠️ فيه نقاط قديمة محفوظة أصلاً من تصفير سابق — لازم تدمجها أول قبل ما تعمل تصفير جديد');
+    return;
+  }
+  const totalPts = state.students.reduce((s,x) => s + x.points, 0);
+  if (!await customConfirm(`بدك تصفّر نقاط كل الطلاب والفرق (المجموع الحالي ${totalPts} نقطة) وترجعهم صفر؟\n\nكل النقاط الحالية رح تُحفظ بأمان جانباً وما رح تضيع أبداً — بس كل الطلاب رح يشوفوا نقاطهم صفر من هلق. تقدر تدمج النقاط القديمة مع الجديدة بأي وقت تحب من نفس هالمكان (مثلاً آخر النادي).`, '🔄')) return;
+
+  state.pointsArchive = {
+    archivedAt: Date.now(),
+    studentsSnapshot: state.students.map(s => ({ id: s.id, points: s.points })),
+    teamsSnapshot: state.teams.map(t => ({ id: t.id, points: t.points }))
+  };
+  state.students.forEach(s => { s.points = 0; });
+  state.teams.forEach(t => { t.points = 0; });
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
+  logEntry('🔄', `تصفير كل نقاط الطلاب والفرق لبدء تحدي/موسم جديد (النقاط القديمة محفوظة بانتظار الدمج)` + (currentAdmin ? ' — ' + currentAdmin : ''));
+  save(); render();
+  toast('🔄 تم تصفير كل النقاط، وحُفظت القديمة بأمان بانتظار الدمج');
+}
+
+async function mergeSeasonPoints() {
+  if (!state.pointsArchive) { toast('⚠️ ما في نقاط قديمة محفوظة لدمجها'); return; }
+  const a = state.pointsArchive;
+  if (!await customConfirm(`بدك تدمج النقاط القديمة المحفوظة (${a.studentsSnapshot.length} طالب) مع النقاط الحالية؟\n\nكل طالب وفريق رح تنجمع نقطته القديمة مع الجديدة نهائياً، وبعدها ما رح تقدر ترجع تفصلهم.`, '🔗')) return;
+
+  a.studentsSnapshot.forEach(item => {
+    const s = state.students.find(x => x.id === item.id);
+    if (s) s.points += item.points;
+  });
+  a.teamsSnapshot.forEach(item => {
+    const t = state.teams.find(x => x.id === item.id);
+    if (t) t.points += item.points;
+  });
+  const currentAdmin = sessionStorage.getItem('nadyAdmin') || '';
+  logEntry('🔗', `دمج النقاط القديمة المحفوظة مع النقاط الحالية (${a.studentsSnapshot.length} طالب)` + (currentAdmin ? ' — ' + currentAdmin : ''));
+  delete state.pointsArchive;
+  save(); render();
+  toast('🔗 تم دمج النقاط القديمة مع الجديدة بنجاح');
 }
 
 async function clearLog() {
@@ -3838,6 +3905,7 @@ function renderTeamsList() {
 function renderLog() {
   const el = document.getElementById('log-list');
   renderLogBackups();
+  renderPointsSeasonStatus();
   if (!state.log.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>السجل فارغ</p></div>';
     return;
